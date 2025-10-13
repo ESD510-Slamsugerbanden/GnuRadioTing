@@ -20,6 +20,7 @@ from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
+from gnuradio import network
 from gnuradio import uhd
 import time
 from gnuradio.fft import logpwrfft
@@ -187,6 +188,7 @@ class untitled(gr.top_block, Qt.QWidget):
 
         self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_time_sink_x_0_win)
+        self.network_udp_sink_0 = network.udp_sink(gr.sizeof_float, 1, '127.0.0.1', 2000, 0, 64, False)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
             sample_rate=samp_rate,
             fft_size=2048,
@@ -203,6 +205,7 @@ class untitled(gr.top_block, Qt.QWidget):
         # Connections
         ##################################################
         self.connect((self.analog_sig_source_x_0, 0), (self.uhd_usrp_sink_0, 0))
+        self.connect((self.epy_block_0, 0), (self.network_udp_sink_0, 0))
         self.connect((self.epy_block_0, 0), (self.qtgui_time_sink_x_0, 0))
         self.connect((self.logpwrfft_x_0, 0), (self.epy_block_0, 0))
         self.connect((self.logpwrfft_x_0, 0), (self.qtgui_vector_sink_f_0, 0))

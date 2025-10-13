@@ -127,6 +127,26 @@ blocks:
     coordinate: [448, 368.0]
     rotation: 0
     state: enabled
+- name: network_udp_sink_0
+  id: network_udp_sink
+  parameters:
+    addr: 127.0.0.1
+    affinity: ''
+    alias: ''
+    comment: ''
+    header: '0'
+    payloadsize: '64'
+    port: '2000'
+    send_eof: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1040, 516.0]
+    rotation: 0
+    state: enabled
 - name: qtgui_time_sink_x_0
   id: qtgui_time_sink_x
   parameters:
@@ -1014,6 +1034,7 @@ blocks:
 
 connections:
 - [analog_sig_source_x_0, '0', uhd_usrp_sink_0, '0']
+- [epy_block_0, '0', network_udp_sink_0, '0']
 - [epy_block_0, '0', qtgui_time_sink_x_0, '0']
 - [logpwrfft_x_0, '0', epy_block_0, '0']
 - [logpwrfft_x_0, '0', qtgui_vector_sink_f_0, '0']

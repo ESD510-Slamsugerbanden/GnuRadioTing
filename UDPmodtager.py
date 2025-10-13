@@ -1,5 +1,9 @@
 import socket
 import struct
+import time
+
+RSSI_angles = 6
+UDP_packetSize = 64
 
 
 # Define the UDP IP address and port to listen on
@@ -26,24 +30,32 @@ def getRSSI(bytes):
 
     return runningSum/(bytes/4)
 
-def initialLocation():
-    #1. Sweep Butler & put RSSI i array
-    #2. Roter 30 grader vertikalt x2
-    #3 Roter 30 grader Azimuth
-    #Repeat 1-3 til tilbage ved start
-    
+def find_Initial_Location():
+    currentAngle = 0
+    RSSI_array = []
+    for i in range(RSSI_angles):
+        aimed_Angle = 180/RSSI_angles
+        RSSI_array.append(getRSSI(UDP_packetSize))
+        maltheDREJ(aimed_Angle)
+        while(currentAngle!= aimed_Angle):
+            currentAngle = malthe_get_angle()
+            time.sleep(0.01)
 
+    maxRSSI = 0
+    for i in range(RSSI_angles):
+        #parse gennem listen
+        #Hvis nuværende værdi > maxRSSI
+        if(RSSI_array[i] > maxRSSI):
+            maxRSSI = RSSI_array[i]
+            max_RSSI_index = i
 
-
-
-
-
-    return True
+    return max_RSSI_index, RSSI_array
 
 
 while True:
-    initialLocation()
-
-    print(getRSSI(64))
+    tx_angle, RSSI_array = find_Initial_Location()
+    maltheDREJ(tx_angle)
+    print(RSSI_array)
+    print(f"Den godeste vinkel er {tx_angle}")
 
 
