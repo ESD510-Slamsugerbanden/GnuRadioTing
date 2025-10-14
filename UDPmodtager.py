@@ -1,14 +1,22 @@
 import socket
 import struct
 import time
+import rotte
+import matplotlib.pyplot as plt
+import numpy as np
 
-RSSI_angles = 6
+
+RSSI_angles = 20
 UDP_packetSize = 64
-
+AZ_counts = 360
 
 # Define the UDP IP address and port to listen on
 UDP_IP = "127.0.0.1"
 UDP_PORT = 2000
+
+#TARM
+TARM = rotte.UdpProtocolClient("192.168.4.1", 8700)
+ele = 90
 
 # Create a UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -31,31 +39,52 @@ def getRSSI(bytes):
     return runningSum/(bytes/4)
 
 def find_Initial_Location():
-    currentAngle = 0
     RSSI_array = []
     for i in range(RSSI_angles):
-        aimed_Angle = 180/RSSI_angles
-        RSSI_array.append(getRSSI(UDP_packetSize))
-        maltheDREJ(aimed_Angle)
-        while(currentAngle!= aimed_Angle):
-            currentAngle = malthe_get_angle()
-            time.sleep(0.01)
+        aimed_Angle = int(AZ_counts/RSSI_angles)*i
+        runningSum = getRSSI(UDP_packetSize)
+        runningSum += getRSSI(UDP_packetSize)
+        runningSum += getRSSI(UDP_packetSize)
+        runningSum += getRSSI(UDP_packetSize)
+        RSSI_array.append(runningSum)
 
-    maxRSSI = 0
+       # RSSI_array.append(getRSSI(UDP_packetSize))
+        print(runningSum)
+        TARM.set_pos(aimed_Angle, ele)
+        time.sleep(1)
+
+    maxRSSI = -1000
+    max_RSSI_index = 0
     for i in range(RSSI_angles):
-        #parse gennem listen
-        #Hvis nuværende værdi > maxRSSI
         if(RSSI_array[i] > maxRSSI):
             maxRSSI = RSSI_array[i]
             max_RSSI_index = i
 
-    return max_RSSI_index, RSSI_array
+    angle_out = int(max_RSSI_index*AZ_counts/RSSI_angles)
+
+    return angle_out, RSSI_array
 
 
-while True:
-    tx_angle, RSSI_array = find_Initial_Location()
-    maltheDREJ(tx_angle)
-    print(RSSI_array)
-    print(f"Den godeste vinkel er {tx_angle}")
 
+
+def radialPlot(Arrray_in):
+    thetas = []
+
+    for i in range(RSSI_angles):
+        thetas.append(((2*np.pi/RSSI_angles)*i))
+
+    
+    plt.polar(thetas[0:RSSI_angles], Arrray_in[0:RSSI_angles])
+    plt.show()
+
+
+
+#MAIN
+
+
+tx_angle, RSSI_array = find_Initial_Location()
+TARM.set_pos(tx_angle, ele)
+print(RSSI_array)
+print(f"Den godeste vinkel er {tx_angle}")
+radialPlot(RSSI_array)
 

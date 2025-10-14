@@ -27,7 +27,7 @@ class blk(gr.sync_block):  # other base classes are basic_block, decim_block, in
     def work(self, input_items, output_items):
         """example: multiply with constant"""
         sum = 0.0
-        for i in range(220, 224):
+        for i in range(102,106):
             sum +=  10**(input_items[0][:,i]/20)
         output_items[0][:] = 20*np.log10(sum/4)
         return len(output_items[0])
