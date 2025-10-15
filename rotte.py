@@ -51,10 +51,10 @@ if __name__ == "__main__":
         ms = time.time()
         x, y = mouse.position 
         azi = (x/1920)*2-1
-        ele = (y/1080)*2-1
+        ele = (y/1080)*2-1 
 
         print(azi, ele)
         #print(client.get_pos())
-        client.set_pos(float(azi)*45, float(ele)*45)
+        client.set_pos(float(azi)*45, (float(ele)*45) -90)
 
         time.sleep(0.05)

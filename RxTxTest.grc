@@ -45,29 +45,38 @@ blocks:
     coordinate: [200, 12]
     rotation: 0
     state: enabled
-- name: band_pass_filter_0
-  id: band_pass_filter
+- name: blocks_complex_to_mag_0
+  id: blocks_complex_to_mag
   parameters:
     affinity: ''
     alias: ''
-    beta: '6.76'
     comment: ''
-    decim: '1'
-    gain: '1'
-    high_cutoff_freq: '55000'
-    interp: '1'
-    low_cutoff_freq: '45000'
     maxoutbuf: '0'
     minoutbuf: '0'
-    samp_rate: samp_rate
-    type: fir_filter_ccf
-    width: '1000'
-    win: window.WIN_HAMMING
+    vlen: '2048'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [464, 396.0]
+    coordinate: [1216, 404.0]
+    rotation: 0
+    state: enabled
+- name: blocks_stream_to_vector_0
+  id: blocks_stream_to_vector
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: '2048'
+    type: complex
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [736, 408.0]
     rotation: 0
     state: enabled
 - name: epy_block_0
@@ -87,8 +96,8 @@ blocks:
       \        )\n        # if an attribute with the same name as a parameter is found,\n\
       \        # a callback is registered (properties work, too).\n\n    def work(self,\
       \ input_items, output_items):\n        \"\"\"example: multiply with constant\"\
-      \"\"\n        sum = 0.0\n        for i in range(102,106):\n            sum +=\
-      \  10**(input_items[0][:,i]/20)\n        output_items[0][:] = 20*np.log10(sum/4)\n\
+      \"\"\n        sum = 0.0\n        for i in range(1360,1373):\n            sum\
+      \ +=  10**(input_items[0][:,i]/20)\n        output_items[0][:] = 20*np.log10(sum/13)\n\
       \        return len(output_items[0])\n\n\n\n\n"
     affinity: ''
     alias: ''
@@ -103,30 +112,28 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1128, 492.0]
+    coordinate: [1168, 172.0]
     rotation: 0
     state: enabled
-- name: logpwrfft_x_0
-  id: logpwrfft_x
+- name: fft_vxx_0
+  id: fft_vxx
   parameters:
     affinity: ''
     alias: ''
-    average: 'False'
-    avg_alpha: '1.0'
     comment: ''
     fft_size: '2048'
-    frame_rate: '100'
+    forward: 'True'
     maxoutbuf: '0'
     minoutbuf: '0'
-    ref_scale: '2'
-    sample_rate: samp_rate
-    shift: 'False'
+    nthreads: '1'
+    shift: 'True'
     type: complex
+    window: window.blackmanharris(2048)
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [848, 316.0]
+    coordinate: [960, 372.0]
     rotation: 0
     state: enabled
 - name: network_udp_sink_0
@@ -138,7 +145,7 @@ blocks:
     comment: ''
     header: '0'
     payloadsize: '64'
-    port: '2000'
+    port: '24944'
     send_eof: 'False'
     type: float
     vlen: '1'
@@ -146,7 +153,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1440, 468.0]
+    coordinate: [1456, 172.0]
     rotation: 0
     state: enabled
 - name: qtgui_freq_sink_x_0
@@ -164,7 +171,7 @@ blocks:
     alpha7: '1.0'
     alpha8: '1.0'
     alpha9: '1.0'
-    autoscale: 'True'
+    autoscale: 'False'
     average: '1.0'
     axislabels: 'True'
     bw: samp_rate
@@ -221,7 +228,7 @@ blocks:
     width8: '1'
     width9: '1'
     wintype: window.WIN_BLACKMAN_hARRIS
-    ymax: '10'
+    ymax: '-20'
     ymin: '-140'
   states:
     bus_sink: false
@@ -324,7 +331,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1472, 364.0]
+    coordinate: [1488, 68.0]
     rotation: 0
     state: enabled
 - name: qtgui_vector_sink_f_0
@@ -392,13 +399,13 @@ blocks:
     x_units: '""'
     y_axis_label: '"y-Axis"'
     y_units: '""'
-    ymax: '10'
-    ymin: '-140'
+    ymax: '5'
+    ymin: '0'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1056, 324.0]
+    coordinate: [1488, 380.0]
     rotation: 0
     state: enabled
 - name: uhd_usrp_source_0
@@ -438,7 +445,7 @@ blocks:
     ant7: '"RX2"'
     ant8: '"RX2"'
     ant9: '"RX2"'
-    bw0: '0'
+    bw0: '300000'
     bw1: '0'
     bw10: '0'
     bw11: '0'
@@ -578,7 +585,7 @@ blocks:
     dc_offs_enb9: default
     dev_addr: '""'
     dev_args: ''
-    gain0: '60'
+    gain0: '80'
     gain1: '0'
     gain10: '0'
     gain11: '0'
@@ -839,13 +846,14 @@ blocks:
     state: enabled
 
 connections:
-- [band_pass_filter_0, '0', logpwrfft_x_0, '0']
-- [band_pass_filter_0, '0', qtgui_freq_sink_x_0, '0']
+- [blocks_complex_to_mag_0, '0', epy_block_0, '0']
+- [blocks_complex_to_mag_0, '0', qtgui_vector_sink_f_0, '0']
+- [blocks_stream_to_vector_0, '0', fft_vxx_0, '0']
 - [epy_block_0, '0', network_udp_sink_0, '0']
 - [epy_block_0, '0', qtgui_time_sink_x_0, '0']
-- [logpwrfft_x_0, '0', epy_block_0, '0']
-- [logpwrfft_x_0, '0', qtgui_vector_sink_f_0, '0']
-- [uhd_usrp_source_0, '0', band_pass_filter_0, '0']
+- [fft_vxx_0, '0', blocks_complex_to_mag_0, '0']
+- [uhd_usrp_source_0, '0', blocks_stream_to_vector_0, '0']
+- [uhd_usrp_source_0, '0', qtgui_freq_sink_x_0, '0']
 
 metadata:
   file_format: 1
