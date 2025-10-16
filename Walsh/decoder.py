@@ -4,6 +4,8 @@ import struct
 from scipy.linalg import hadamard
 
 import socket
+import variables
+
 
 
 class Input_stream:
@@ -58,9 +60,7 @@ def correlate(pattern, samples_1):
         sum += (pattern[i] * samples_1[i])
     return sum
 
-if __name__ == "__main__":
-
-
+def decodeServer():
     encodements = hadamard(8)
     print(encodements)
     print("done")
@@ -73,6 +73,7 @@ if __name__ == "__main__":
     print(pattern_red)
     print(pattern_blue)
     C_buf = RingBuffer(sps*num_syms)
+    RSSI_buf = RingBuffer(sps*num_syms)
 
     i = 0
     max_a = 0
@@ -92,7 +93,9 @@ if __name__ == "__main__":
         ##frekvenser over 0
         C_2 = np.sum(np.power(10, np.divide(raw[int(size/2):size], 10)))
 
+        
         C_buf.put(C_1 - C_2)
+        RSSI_buf.put(C_1+C_2)
 
         
         matcha = correlate(pattern_red, C_buf.buffer)
@@ -103,12 +106,12 @@ if __name__ == "__main__":
             max_b = matchb
 
         if (i > sps*num_syms):
-            print("maximums since last {:f} {:f}".format(max_a, max_b))
+            #print("maximums since last {:f} {:f}".format(max_a, max_b))
+            variables.corrScore = max_a
             max_a = 0
             max_b = 0 
+            variables.globalRSSI = np.average(RSSI_buf.buffer)
+
             i = 0
         i += 1
-
-
-
 
