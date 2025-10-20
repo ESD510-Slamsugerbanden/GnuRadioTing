@@ -7,7 +7,7 @@
 # GNU Radio Python Flow Graph
 # Title: Not titled yet
 # Author: sennels
-# GNU Radio version: 3.10.9.2
+# GNU Radio version: 3.10.12.0
 
 from PyQt5 import Qt
 from gnuradio import qtgui
@@ -25,6 +25,7 @@ from gnuradio import eng_notation
 from gnuradio import uhd
 import time
 import sip
+import threading
 
 
 
@@ -51,7 +52,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
         self.top_grid_layout = Qt.QGridLayout()
         self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("GNU Radio", "Transfrans")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "Transfrans")
 
         try:
             geometry = self.settings.value("geometry")
@@ -59,6 +60,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
                 self.restoreGeometry(geometry)
         except BaseException as exc:
             print(f"Qt GUI: Could not restore geometry: {str(exc)}", file=sys.stderr)
+        self.flowgraph_started = threading.Event()
 
         ##################################################
         # Variables
@@ -79,16 +81,16 @@ class Transfrans(gr.top_block, Qt.QWidget):
             uhd.stream_args(
                 cpu_format="fc32",
                 args='',
-                channels=[0],
+                channels=list(range(0,1)),
             ),
             "",
         )
         self.uhd_usrp_sink_0.set_samp_rate(samp_rate)
-        self.uhd_usrp_sink_0.set_time_now(uhd.time_spec(time.time()), uhd.ALL_MBOARDS)
+        self.uhd_usrp_sink_0.set_time_unknown_pps(uhd.time_spec(0))
 
-        self.uhd_usrp_sink_0.set_center_freq(2410000000, 0)
+        self.uhd_usrp_sink_0.set_center_freq(2490000000, 0)
         self.uhd_usrp_sink_0.set_antenna("TX/RX", 0)
-        self.uhd_usrp_sink_0.set_normalized_gain(1, 0)
+        self.uhd_usrp_sink_0.set_normalized_gain(0.7, 0)
         self.qtgui_waterfall_sink_x_0 = qtgui.waterfall_sink_c(
             1024, #size
             window.WIN_BLACKMAN_hARRIS, #wintype
@@ -124,7 +126,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
         self._qtgui_waterfall_sink_x_0_win = sip.wrapinstance(self.qtgui_waterfall_sink_x_0.qwidget(), Qt.QWidget)
 
         self.top_layout.addWidget(self._qtgui_waterfall_sink_x_0_win)
-        self.blocks_vector_source_x_0 = blocks.vector_source_f((1, -1, 1, -1, 1, -1, 1,-1), True, 1, [])
+        self.blocks_vector_source_x_0 = blocks.vector_source_f((1,1,1,1,-1,-1,-1,-1), True, 1, [])
         self.blocks_vco_c_0_0 = blocks.vco_c(samp_rate, (2*PI), 1)
         self.blocks_repeat_0 = blocks.repeat(gr.sizeof_float*1, (int((samp_rate)/(Symbol_rate))))
         self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_ff(sep_freq)
@@ -152,7 +154,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
 
 
     def closeEvent(self, event):
-        self.settings = Qt.QSettings("GNU Radio", "Transfrans")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "Transfrans")
         self.settings.setValue("geometry", self.saveGeometry())
         self.stop()
         self.wait()
@@ -214,6 +216,7 @@ def main(top_block_cls=Transfrans, options=None):
     tb = top_block_cls()
 
     tb.start()
+    tb.flowgraph_started.set()
 
     tb.show()
 

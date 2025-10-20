@@ -195,7 +195,7 @@ blocks:
     repeat: 'True'
     tags: '[]'
     type: float
-    vector: (1, -1, 1, -1, 1, -1, 1,-1)
+    vector: (1,1,1,1,-1,-1,-1,-1)
     vlen: '1'
   states:
     bus_sink: false
@@ -334,7 +334,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: '2410000000'
+    center_freq0: '2490000000'
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'
@@ -378,7 +378,7 @@ blocks:
     comment: ''
     dev_addr: '""'
     dev_args: ''
-    gain0: '1'
+    gain0: '0.7'
     gain1: '0'
     gain10: '0'
     gain11: '0'
@@ -524,8 +524,8 @@ blocks:
     show_lo_controls: 'False'
     start_time: '-1.0'
     stream_args: ''
-    stream_chans: '[0]'
-    sync: pc_clock
+    stream_chans: '[]'
+    sync: sync
     time_source0: ''
     time_source1: ''
     time_source2: ''
@@ -539,7 +539,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1352, 316.0]
+    coordinate: [1400, 392.0]
     rotation: 0
     state: enabled
 
@@ -553,4 +553,4 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: 3.10.9.2
+  grc_version: 3.10.12.0
