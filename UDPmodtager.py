@@ -14,11 +14,11 @@ t2.start()
 RSSI_angles = 100
 UDP_packetSize = 64
 AZ_counts = 368
-ele = 0
+ele = 20
 
 # Define the UDP IP address and port to listen on
 UDP_IP = "127.0.0.1"
-UDP_PORT = 5006
+UDP_PORT = 24944 
 
 #TARM
 TARM = rotte.UdpProtocolClient("192.168.4.1", 8700)
@@ -95,8 +95,8 @@ def radialPlot(CORR, RSSI, angle_Array):
     ax2 = fig.add_subplot(111, projection="polar", label="RSSI", frame_on=False)
 
     # Plotting the data
-    ax1.plot(angle_Array, 10*np.log10(CORR), color='b', label="Correlation Score")
-    ax2.plot(angle_Array, 10*np.log10(RSSI), color='r', label="RSSI")
+    ax1.plot(angle_Array, CORR, color='b', label="Correlation Score")
+    ax2.plot(angle_Array, RSSI, color='r', label="RSSI")
 
     # Hide radial ticks, grid, and labels on ax2 to avoid overlap
     ax2.set_yticklabels([])     # Hide radial labels
@@ -182,7 +182,7 @@ def RSSIplot():
     print(f"Den godeste vinkel er {np.rad2deg(tx_angle)}")
     radialPlot(RSSI_array, RSSI_array2, angle_Array)
 
-    mechanicalTrack(np.rad2deg(tx_angle))
+    #mechanicalTrack(np.rad2deg(tx_angle))
 
 if(__name__ == "__main__"):
     RSSIplot()
