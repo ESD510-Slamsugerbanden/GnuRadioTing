@@ -14,7 +14,7 @@ t2.start()
 RSSI_angles = 100
 UDP_packetSize = 64
 AZ_counts = 368
-ele = 20
+ele = 0
 
 # Define the UDP IP address and port to listen on
 UDP_IP = "127.0.0.1"
