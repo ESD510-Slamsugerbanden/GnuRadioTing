@@ -53,6 +53,8 @@ class RingBuffer:
 
 #patter vi kigger efter, frekvenser over 0, frekvenser under 0
 def correlate(pattern, samples_1):
+
+    
     sum = 0
     for i in range(min(len(pattern),len(pattern))):
         sum += (pattern[i] * samples_1[i])

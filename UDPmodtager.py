@@ -1,5 +1,3 @@
-import socket
-import struct
 import time
 import rotte
 import matplotlib.pyplot as plt
@@ -7,6 +5,8 @@ import numpy as np
 import variables
 import Walsh.decoder as decoder
 import threading
+
+
 
 t2 = threading.Thread(target=decoder.decodeServer)
 t2.start()
@@ -161,6 +161,7 @@ def mechanicalTrack(initialAngle):
             time.sleep(0.1)
         else:
             print("Du har lavet den fejl din dum")
+            
         
 
 

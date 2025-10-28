@@ -3,6 +3,13 @@ import struct
 import time
 import math
 from pynput.mouse import Controller
+import logging
+
+
+####################
+# Interface for the ESP32 via UDP
+####################
+
 
 class UdpProtocolClient:
     def __init__(self, host="192.168.4.1", port=8700, timeout=2.0):
@@ -30,13 +37,18 @@ class UdpProtocolClient:
         Returns (azimuth, elevation) as floats.
         """
         self.sock.sendto(bytes([0x42, 0x02]), (self.host, self.port))
+
+
         try:
             data, _ = self.sock.recvfrom(1024)
         except socket.timeout:
-            raise TimeoutError("No response received")
+            logging.error("UDP socket timeout")
+            return None, None
+
 
         if len(data) != 8:
-            raise ValueError(f"Invalid packet length: {len(data)}")
+            logging.error("Invalid packet length recieved")
+            return None, None
 
         az, el = struct.unpack("<ff", data[:8])
 
@@ -44,9 +56,10 @@ class UdpProtocolClient:
 
 
 
-client = UdpProtocolClient("192.168.4.1", 8700)
-mouse = Controller()
+
 if __name__ == "__main__":
+    client = UdpProtocolClient("192.168.4.1", 8700)
+    mouse = Controller()
     while(True):
         ms = time.time()
         x, y = mouse.position 
