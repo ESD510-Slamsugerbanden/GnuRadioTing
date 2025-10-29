@@ -73,7 +73,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '500000'
+    value: 500e3
   states:
     bus_sink: false
     bus_source: false
@@ -264,7 +264,7 @@ blocks:
     bus_structure: null
     coordinate: [1992, 240.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: qtgui_waterfall_sink_x_0
   id: qtgui_waterfall_sink_x
   parameters:
@@ -325,7 +325,7 @@ blocks:
     bus_structure: null
     coordinate: [1576, 232.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: uhd_usrp_source_0
   id: uhd_usrp_source
   parameters:

@@ -7,6 +7,16 @@ import numpy as np
 import variables
 import Walsh.decoder as decoder
 import threading
+import RPi.GPIO as GPIO
+
+Pin1 = 17
+Pin2 = 27
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(Pin1, GPIO.OUT)
+GPIO.setup(Pin2, GPIO.OUT)
+GPIO.output(Pin1, GPIO.LOW)
+GPIO.output(Pin2, GPIO.LOW)
 
 t2 = threading.Thread(target=decoder.decodeServer)
 t2.start()
@@ -163,8 +173,25 @@ def mechanicalTrack(initialAngle):
             print("Du har lavet den fejl din dum")
         
 
-
+def switchTest(sw):
+    match sw:
+        case 1:
+            GPIO.output(Pin1, GPIO.LOW)
+            GPIO.output(Pin2, GPIO.LOW)
         
+        case 2:
+            GPIO.output(Pin1, GPIO.HIGH)
+            GPIO.output(Pin2, GPIO.LOW)
+        
+        case 3:
+            GPIO.output(Pin1, GPIO.LOW)
+            GPIO.output(Pin2, GPIO.HIGH)
+        
+
+        case 4:
+            GPIO.output(Pin1, GPIO.HIGH)
+            GPIO.output(Pin2, GPIO.HIGH)
+            print("Det var fire")
 
 
 
@@ -187,3 +214,7 @@ def RSSIplot():
 if(__name__ == "__main__"):
     RSSIplot()
     #mechanicalTrack(0)
+    while(True):
+        for i in range(4):
+            switchTest(i+1)
+            getRSSI(UDP_packetSize)
