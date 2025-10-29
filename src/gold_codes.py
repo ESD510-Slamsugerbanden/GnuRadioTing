@@ -51,8 +51,8 @@ if __name__ == "__main__":
     h_test = h_test[1, :]
     a = codes[0]
     b = codes[1]
-    corr = np.correlate(-(2*np.tile(a, 10) - 1), 2*a - 1, mode='full')  # map 0→-1, 1→+1
-    corr2 = np.correlate(np.tile(h_test, 10), h_test, mode='full')
+    corr = np.correlate(-(2*np.tile(a, 3) - 1), 2*a - 1, mode='full')  # map 0→-1, 1→+1
+    corr2 = np.correlate(np.tile(h_test, 3), h_test, mode='full')
 
     plt.plot(corr)
     plt.plot(corr2)

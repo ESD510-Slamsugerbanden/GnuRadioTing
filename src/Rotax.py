@@ -56,6 +56,33 @@ class UdpProtocolClient:
 
 
 
+class ez_comm:
+    def __init__(self, device: str):
+        self.serial = serial.Serial(device, 115200)
+
+    def get_pos(self):
+        self.serial.flush()
+
+        self.serial.write(bytes("AZ EL\n", encoding="ascii"))
+        time.sleep(0.01)
+        buffer = self.serial.read_all()
+        buffer = buffer.strip()
+        split = buffer.split(b" ")
+        azimuth = float(split[0][2:])
+        elevation = float(split[1][2:])
+
+        return (azimuth, elevation)
+
+
+    def set_pos(self, azimuth: float, elevation: float):
+        msg = "AZ{:.1f} El{:.1f}\n".format(azimuth, elevation)
+        self.serial.write(bytes(msg, encoding="ascii"))
+        pass
+
+
+
+
+
 
 if __name__ == "__main__":
     client = UdpProtocolClient("192.168.4.1", 8700)
@@ -71,3 +98,8 @@ if __name__ == "__main__":
         client.set_pos(float(azi)*45, (float(ele)*45) -90)
 
         time.sleep(0.05)
+
+    TARM = ez_comm("/dev/ttyACM1")
+
+    TARM.set_pos(25, 25)
+    TARM.get_pos()

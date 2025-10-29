@@ -8,6 +8,88 @@ import logging
 import gold_codes 
 import time 
 import plotly.express as px
+import array
+
+
+
+#######################
+# ULTIMATIV JYDESNAK  #
+#######################
+
+###################################################
+# |  4 bit    | 4 bit  |   4 bytes  | #
+# | Preamble  | Block  |   Payload  | #
+###################################################
+
+### Hamming's (7,4)
+
+
+
+
+class Beacon_encoder:
+    
+    
+    def __init__(self, my_id = 0, n=5, port=5007):
+        
+        self.preamble = 0xA0
+        self.num_blocks = 16
+        self.info_table = []
+        for i in range(self.num_blocks):
+            self.info_table.append(bytes([0]*4))
+        self.T_msg = 1
+
+
+        # Example: n = 5 (length = 31)
+        # Preferred polynomials for n=5 are often [5,2] and [5,4,3,2]
+        poly1 = [5, 2]          # x^5 + x^2 + 1
+        poly2 = [5, 4, 3, 2]    # x^5 + x^4 + x^3 + x^2 + 1
+        seed = np.array([1, 0, 0, 0, 1])
+        self.code_table = gold_codes.gold_codes(n, poly1, poly2, seed)
+        self.code_table = self.code_table*2 -1 #får det til at gå fra +1 til -1
+        self.code_vector = np.flip(self.code_table[my_id]) #When in doubt flip
+        self.thread_handle = threading.Thread(target=self._internal_runner)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.bind(("127.0.0.1", port))
+        
+
+
+
+    def start(self):
+        self.thread_handle.start()
+
+    
+    def _internal_runner(self):
+        block_counter = 0
+        
+        while(True):
+            #Konstruer besked.
+            header = (self.preamble | (block_counter & 0x0F))
+            package = header.to_bytes()
+            package +=  self.info_table[block_counter]
+            
+            block_counter = (block_counter + 1) % self.num_blocks 
+            
+            chip_vector = []
+            for byte in package:
+                for i_bit in range(8):
+                    chip_vector += ((byte >> i_bit & 0x01)*2-1) * self.code_vector
+
+            
+            time.sleep(self.T_msg)
+
+
+
+
+    
+
+    def set_payload(page,):
+        pass
+
+
+
+
+
+
 
 class Beacon_decoder:
 
@@ -22,7 +104,7 @@ class Beacon_decoder:
             self.buffer = np.roll(self.buffer, 1)
             self.buffer[0] = sample
 
-    def __init__(self, my_id = 0, n = 5, samples_pr_symbol=2, port=5006):
+    def __init__(self, my_id = 0, n = 5, samples_pr_symbol=3, port=5006):
         self.sps = samples_pr_symbol #samples pr symbol
         self.num_syms = 2**n-1 #number of symbols allowed
         logging.info("Initializing decoder")
@@ -93,14 +175,14 @@ class Beacon_decoder:
             size = len(fft_samples)
 
             ##frekvenser under 0 bliver gemt som et 0
-            C_1 = np.sum(fft_samples[0:int(size/2)])
+            #C_1 = np.sum(fft_samples[0:int(size/2)])
             ##frekvenser over 0 blive gemt som et 1
-            C_2 = np.sum(fft_samples[int(size/2):size])
+            #C_2 = np.sum(fft_samples[int(size/2):size])
 
 
             #Puts them in the buffer
-            self.code_buf.put(C_1-C_2)
-            self.RSSI_buf.put(C_1+C_2)
+            self.code_buf.put(fft_samples)
+            self.RSSI_buf.put(fft_samples)
 
             #print("rssi: {:.3f}\t , corr: {:.3f}".format(C_1 + C_2,C_1 - C_2))
             xcorr_score = Beacon_decoder.correlate(self.code_buf.buffer,self.code_vector)
@@ -148,7 +230,7 @@ class Beacon_decoder:
     class Input_stream:
         def __init__(self, host: str="127.0.0.1", port:int=5005, f_s:int=5):
 
-            self.num_floats = 32
+            self.num_floats = 1
             self.f_s = f_s
             self.host = host
             self.port = port
@@ -187,5 +269,8 @@ class Beacon_decoder:
 
 
 if __name__ == "__main__":
-    beacon = Beacon_decoder()
-    beacon.start()
+    encoder = Beacon_encoder()
+
+    encoder._internal_runner()
+    #beacon = Beacon_decoder()
+    #beacon.start()
