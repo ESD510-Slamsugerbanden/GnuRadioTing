@@ -32,22 +32,6 @@ sock.bind((UDP_IP, UDP_PORT))
 
 print(f"Listening for UDP packets on {UDP_IP} :{UDP_PORT}")
 
-def getRSSI(bytes):
-    '''
-    valNow = 0
-    runningSum = 0
-    data, addr = sock.recvfrom(bytes)
-    #print(f"Received packet from {addr}:")
-    
-    #Unpack 
-    for i in range((bytes//4)-1):
-        valNow = struct.unpack('f', data[(i*4):(i*4+4)])
-        #print(valNow)
-        runningSum += valNow[0]
-    '''
-    return variables.corrScore, variables.globalRSSI
-
-
 
 def find_Initial_Location():
     RSSI_array = []
@@ -161,12 +145,6 @@ def mechanicalTrack(initialAngle):
             time.sleep(0.1)
         else:
             print("Du har lavet den fejl din dum")
-            
-        
-
-
-        
-
 
 
 
