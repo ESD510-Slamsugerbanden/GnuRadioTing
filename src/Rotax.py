@@ -1,10 +1,10 @@
 import socket
 import struct
 import time
-import math
+
 from pynput.mouse import Controller
 import logging
-
+import serial
 
 ####################
 # Interface for the ESP32 via UDP
@@ -75,17 +75,18 @@ class ez_comm:
 
 
     def set_pos(self, azimuth: float, elevation: float):
-        msg = "AZ{:.1f} El{:.1f}\n".format(azimuth, elevation)
+        msg = "AZ{:.1f}\n".format(azimuth)
         self.serial.write(bytes(msg, encoding="ascii"))
-        pass
-
-
-
+        msg2 = "EL{:.1f}\n".format(elevation)
+        self.serial.write(bytes(msg2, encoding="ascii"))
+        
 
 
 
 if __name__ == "__main__":
-    client = UdpProtocolClient("192.168.4.1", 8700)
+    #client = UdpProtocolClient("192.168.4.1", 8700)
+    TARM = ez_comm("/dev/ttyUSB0")
+
     mouse = Controller()
     while(True):
         ms = time.time()
@@ -95,11 +96,9 @@ if __name__ == "__main__":
 
         print(azi, ele)
         #print(client.get_pos())
-        client.set_pos(float(azi)*45, (float(ele)*45) -90)
+        #client.set_pos(float(azi)*45, (float(ele)*45) -90)
 
+
+        TARM.set_pos(azi*45.0, 0)
+        TARM.get_pos()
         time.sleep(0.05)
-
-    TARM = ez_comm("/dev/ttyACM1")
-
-    TARM.set_pos(25, 25)
-    TARM.get_pos()
