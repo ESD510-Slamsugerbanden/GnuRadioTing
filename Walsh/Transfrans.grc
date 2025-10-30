@@ -334,7 +334,7 @@ blocks:
     bw7: '0'
     bw8: '0'
     bw9: '0'
-    center_freq0: '2410000000'
+    center_freq0: '2490000000'
     center_freq1: '0'
     center_freq10: '0'
     center_freq11: '0'

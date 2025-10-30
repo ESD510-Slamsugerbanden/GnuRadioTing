@@ -108,11 +108,6 @@ class Beacon_decoder:
         self.sps = samples_pr_symbol #samples pr symbol
         self.num_syms = 2**n-1 #number of symbols allowed
         logging.info("Initializing decoder")
-        #Gets the codes for the hadamard.
-
-
-        # Example: n = 5 (length = 31)
-        # Preferred polynomials for n=5 are often [5,2] and [5,4,3,2]
 
         poly1 = [5, 2]          # x^5 + x^2 + 1
         poly2 = [5, 4, 3, 2]    # x^5 + x^4 + x^3 + x^2 + 1
@@ -134,16 +129,16 @@ class Beacon_decoder:
         #Sets up the input stream fo later use.
         
         self.input_stream = self.Input_stream(host="127.0.0.1", port=port)
-        
 
-        #Sets the code for the decoder itself.
 
         ##Starter forberedelser til at køre en thread.
         self.thread_handle = threading.Thread(target=self._internal_runner)
-        self.last_corr = None
-        self.last_rssi = None
-        self.lastest = False
+        self.last_corr = None #flag for avalible measement
+        self.last_rssi = None #flag for avalible measurement
+        self.lastest = False #flag for avalible measurement
         self.loopback_counter = 0
+
+
 
     def loopback(self):
         sample = self.code_vector[self.loopback_counter]
@@ -151,10 +146,7 @@ class Beacon_decoder:
         return sample
 
     def _internal_runner(self):
-
-        sample_counter = 0
         chip_period = self.sps* self.num_syms
-
         x_corr_max = 0
         rssi_max = 0
         i_max = 0
@@ -206,7 +198,8 @@ class Beacon_decoder:
                 i_modifier = phase_error*K_p + i_term
                 i = 0
                 #print("rssi: {:.4f}\t , corr: {:.4f}, \t i_max:= {:.0f}, new i={:.0f}".format(self.last_rssi, self.last_corr, i_max, i))
-                print("most likely: {:.2f}".format(x_corr_max))
+                #print("most likely: {:.2f}".format(x_corr_max))
+                
                 x_corr_max = 0
                 rssi_max = 0
             i = i + 1
@@ -221,11 +214,16 @@ class Beacon_decoder:
         logging.warning("Stopper not implemented")
         print("Not implemnted: SUCKS TO SUCK")
 
-    def avaliable():
-        pass
+    def avaliable(self):
+        return self.lastest
 
-    def get_lastest():
-        pass
+    def flush(self):
+        self.lastest = False
+
+
+    def get_lastest(self):
+        return (self.last_rssi, self.last_corr)
+
 
     class Input_stream:
         def __init__(self, host: str="127.0.0.1", port:int=5005, f_s:int=5):
@@ -269,8 +267,3 @@ class Beacon_decoder:
 
 
 if __name__ == "__main__":
-    encoder = Beacon_encoder()
-
-    encoder._internal_runner()
-    #beacon = Beacon_decoder()
-    #beacon.start()
