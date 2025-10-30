@@ -15,7 +15,11 @@ class mech_tracker():
     
 
     def track_iteration(self):
+        self.beacon.flush()
+        self.beacon.avaliable()
         
+
+        pass
         
 
 
