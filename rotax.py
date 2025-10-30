@@ -21,15 +21,16 @@ class ez_comm:
 
 
     def set_pos(self, azimuth: float, elevation: float):
-        msg = "AZ{:.1f} El{:.1f}\n".format(azimuth, elevation)
+        msg = "AZ{:.1f}\n".format(azimuth)
         self.serial.write(bytes(msg, encoding="ascii"))
-        pass
-
+        msg2 = "EL{:.1f}\n".format(elevation)
+        self.serial.write(bytes(msg2, encoding="ascii"))
+        
 
 if __name__ == "__main__":
     TARM = ez_comm("/dev/ttyUSB0")
-    while(True):
+    while(True): 
         TARM.set_pos(90, 0)
         time.sleep(2)
-        TARM.set_pos(0, 0)
+        TARM.set_pos(0, -80)
         time.sleep(2)

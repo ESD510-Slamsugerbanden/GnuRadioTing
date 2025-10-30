@@ -1,5 +1,4 @@
-import socket
-import struct
+import rotax
 import time
 import rotte
 import matplotlib.pyplot as plt
@@ -8,6 +7,9 @@ import variables
 import Walsh.decoder as decoder
 import threading
 import RPi.GPIO as GPIO
+from pynput.mouse import Controller
+
+
 
 Pin1 = 17
 Pin2 = 27
@@ -31,7 +33,7 @@ UDP_IP = "127.0.0.1"
 UDP_PORT = 24944 
 
 #TARM
-TARM = rotte.UdpProtocolClient("192.168.4.1", 8700)
+TARM = rotax.ez_comm("/dev/ttyUSB0") #rotte.UdpProtocolClient("192.168.4.1", 8700)
 
 '''
 # Create a UDP socket
@@ -173,28 +175,29 @@ def mechanicalTrack(initialAngle):
             print("Du har lavet den fejl din dum")
         
 
-def switchTest(sw):
+def set_switch(sw):
     match sw:
-        case 1:
+        case 0:
             GPIO.output(Pin1, GPIO.LOW)
+            GPIO.output(Pin2, GPIO.LOW)
+        
+        case 1:
+            GPIO.output(Pin1, GPIO.HIGH)
             GPIO.output(Pin2, GPIO.LOW)
         
         case 2:
-            GPIO.output(Pin1, GPIO.HIGH)
-            GPIO.output(Pin2, GPIO.LOW)
-        
-        case 3:
             GPIO.output(Pin1, GPIO.LOW)
             GPIO.output(Pin2, GPIO.HIGH)
         
 
-        case 4:
+        case 3:
             GPIO.output(Pin1, GPIO.HIGH)
             GPIO.output(Pin2, GPIO.HIGH)
-            print("Det var fire")
+
+    
 
 
-
+mouse = Controller()
 
 
 #MAIN
@@ -212,9 +215,63 @@ def RSSIplot():
     #mechanicalTrack(np.rad2deg(tx_angle))
 
 if(__name__ == "__main__"):
-    RSSIplot()
+    TARM = rotax.ez_comm("/dev/ttyUSB0")
+    #RSSIplot()
     #mechanicalTrack(0)
+    """
     while(True):
         for i in range(4):
             switchTest(i+1)
             getRSSI(UDP_packetSize)
+    """
+    print("starter")
+    pik =0
+    rssi = [[], [], [], []]
+    angles = [[], [], [], []]
+    for i in range(4):
+        set_switch(i)
+        for a in np.linspace(0, 220, 100):
+            TARM.set_pos(a,-35) 
+            time.sleep(0.3)
+            res = getRSSI(pik)
+            rssi[i].append(res[1])
+            angles[i].append(TARM.get_pos()[0] / 180 *np.pi)
+        
+    
+
+    fig = plt.figure()
+    ax = []
+    ax.append(fig.add_subplot(111, projection="polar", label="0"))
+    for i in range(1, 4):
+        ax.append(fig.add_subplot(111, projection="polar", label=f"{i}", frame_on=False))
+        ax[i].set_yticklabels([])     # Hide radial labels
+        ax[i].set_yticks([])          # Hide radial ticks
+        ax[i].grid(False)             # Hide grid lines
+
+    
+    # Plotting the data
+
+    for i in range(4):
+        ax[i].plot(angles[i], rssi[i], label=f"SW={i}")
+    
+    
+    plt.show()
+
+
+
+    while(True):
+        pass
+
+    print("Setting switches")
+    set_switch(2)
+    while(True):
+        ms = time.time()
+        x, y = mouse.position 
+        azi = (x/1920)*2-1
+        ele = (y/1080)*2-1 
+        res = getRSSI(UDP_packetSize)
+        print("RSSI {:.3f}".format(res[1]))
+        #print(azi, ele)
+        #print(client.get_pos())
+        TARM.set_pos( azi*180,-35)
+        time.sleep(0.05)
