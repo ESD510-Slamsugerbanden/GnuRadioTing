@@ -18,9 +18,5 @@ class blk(gr.sync_block):
     def work(self, input_items, output_items):
         x = input_items[0]           # shape: (ninput_items,)
         out = output_items[0]        # shape: (ninput_items, len(chip_vector))
-
-
-
         out[:] = x[:, np.newaxis] * self.chip_vector
-
         return len(out)

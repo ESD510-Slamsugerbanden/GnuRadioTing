@@ -49,7 +49,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: '32'
+    value: '256'
   states:
     bus_sink: false
     bus_source: false
@@ -73,7 +73,7 @@ blocks:
   id: variable
   parameters:
     comment: ''
-    value: (31)*64
+    value: (31)*2
   states:
     bus_sink: false
     bus_source: false
@@ -163,7 +163,7 @@ blocks:
     coordinate: [968, 16.0]
     rotation: 0
     state: enabled
-- name: analog_quadrature_demod_cf_0
+- name: analog_quadrature_demod_cf_0_0
   id: analog_quadrature_demod_cf
   parameters:
     affinity: ''
@@ -176,9 +176,25 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1448, 352.0]
+    coordinate: [8, 556.0]
     rotation: 0
-    state: enabled
+    state: disabled
+- name: analog_quadrature_demod_cf_0_0_0
+  id: analog_quadrature_demod_cf
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    gain: samp_rate/(2*math.pi*sep_freq)
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1488, 260.0]
+    rotation: 0
+    state: disabled
 - name: band_pass_filter_0_0_0
   id: band_pass_filter
   parameters:
@@ -289,7 +305,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    interp: int((samp_rate)/(Symbol_rate))
+    interp: int(((samp_rate)/(Symbol_rate))*samples_pr_sym)
     maxoutbuf: '0'
     minoutbuf: '0'
     type: float
@@ -298,7 +314,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [632, 216.0]
+    coordinate: [592, 212.0]
     rotation: 0
     state: enabled
 - name: blocks_throttle2_0
@@ -340,6 +356,27 @@ blocks:
     coordinate: [944, 456.0]
     rotation: 0
     state: enabled
+- name: blocks_vector_source_x_0
+  id: blocks_vector_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    repeat: 'True'
+    tags: '[]'
+    type: float
+    vector: (1,  1, -1, -1,  1, -1, -1, -1,  1,  1,  1, -1, -1,  1,  1, -1,  1, 1,
+      -1,  1,  1, -1,  1, -1,  1,  1,  1, -1, -1, -1, -1)
+    vlen: '31'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [192, 220.0]
+    rotation: 0
+    state: enabled
 - name: blocks_vector_to_stream_0
   id: blocks_vector_to_stream
   parameters:
@@ -355,7 +392,25 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 224.0]
+    coordinate: [424, 216.0]
+    rotation: 0
+    state: enabled
+- name: blocks_vector_to_stream_1
+  id: blocks_vector_to_stream
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_items: FFT_bins
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1696, 496.0]
     rotation: 0
     state: enabled
 - name: channels_channel_model_0
@@ -369,7 +424,7 @@ blocks:
     freq_offset: '0.0'
     maxoutbuf: '0'
     minoutbuf: '0'
-    noise_voltage: '5'
+    noise_voltage: '0.1'
     seed: '0'
     taps: '1.0'
   states:
@@ -409,7 +464,50 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [232, 216.0]
+    coordinate: [232, 164.0]
+    rotation: 0
+    state: disabled
+- name: logpwrfft_x_0
+  id: logpwrfft_x
+  parameters:
+    affinity: ''
+    alias: ''
+    average: 'False'
+    avg_alpha: '1.0'
+    comment: ''
+    fft_size: FFT_bins
+    frame_rate: Base_samp_rate
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    ref_scale: '1'
+    sample_rate: samp_rate
+    shift: 'True'
+    type: complex
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1488, 332.0]
+    rotation: 0
+    state: enabled
+- name: network_udp_sink_0
+  id: network_udp_sink
+  parameters:
+    addr: 127.0.0.1
+    affinity: ''
+    alias: ''
+    comment: ''
+    header: '0'
+    payloadsize: FFT_bins*4
+    port: '5006'
+    send_eof: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1896, 460.0]
     rotation: 0
     state: enabled
 - name: network_udp_source_0
@@ -432,10 +530,10 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [0, 184.0]
+    coordinate: [0, 132.0]
     rotation: 0
-    state: enabled
-- name: qtgui_time_sink_x_0
+    state: disabled
+- name: qtgui_time_sink_x_0_1
   id: qtgui_time_sink_x
   parameters:
     affinity: ''
@@ -529,10 +627,10 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1720, 448.0]
+    coordinate: [280, 644.0]
     rotation: 0
-    state: enabled
-- name: qtgui_time_sink_x_0_0
+    state: disabled
+- name: qtgui_time_sink_x_0_1_0
   id: qtgui_time_sink_x
   parameters:
     affinity: ''
@@ -587,7 +685,7 @@ blocks:
     marker9: '-1'
     name: '"Quadrature decoder"'
     nconnections: '1'
-    size: int(31*samples_pr_sym)*2
+    size: int(Base_samp_rate*0.5)
     srate: Base_samp_rate
     stemplot: 'False'
     style1: '1'
@@ -626,10 +724,84 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1928, 328.0]
+    coordinate: [1992, 212.0]
+    rotation: 0
+    state: disabled
+- name: qtgui_vector_sink_f_0
+  id: qtgui_vector_sink_f
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha1: '1.0'
+    alpha10: '1.0'
+    alpha2: '1.0'
+    alpha3: '1.0'
+    alpha4: '1.0'
+    alpha5: '1.0'
+    alpha6: '1.0'
+    alpha7: '1.0'
+    alpha8: '1.0'
+    alpha9: '1.0'
+    autoscale: 'False'
+    average: '0.2'
+    color1: '"blue"'
+    color10: '"dark blue"'
+    color2: '"red"'
+    color3: '"green"'
+    color4: '"black"'
+    color5: '"cyan"'
+    color6: '"magenta"'
+    color7: '"yellow"'
+    color8: '"dark red"'
+    color9: '"dark green"'
+    comment: ''
+    grid: 'False'
+    gui_hint: ''
+    label1: ''
+    label10: ''
+    label2: ''
+    label3: ''
+    label4: ''
+    label5: ''
+    label6: ''
+    label7: ''
+    label8: ''
+    label9: ''
+    legend: 'True'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: '""'
+    nconnections: '1'
+    ref_level: '0'
+    showports: 'False'
+    update_time: '0.10'
+    vlen: FFT_bins
+    width1: '1'
+    width10: '1'
+    width2: '1'
+    width3: '1'
+    width4: '1'
+    width5: '1'
+    width6: '1'
+    width7: '1'
+    width8: '1'
+    width9: '1'
+    x_axis_label: '"x-Axis"'
+    x_start: '0'
+    x_step: '1.0'
+    x_units: '""'
+    y_axis_label: '"y-Axis"'
+    y_units: '""'
+    ymax: '1'
+    ymin: '-20'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1744, 356.0]
     rotation: 0
     state: enabled
-- name: qtgui_waterfall_sink_x_1
+- name: qtgui_waterfall_sink_x_0
   id: qtgui_waterfall_sink_x
   parameters:
     affinity: ''
@@ -687,10 +859,10 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1456, 176.0]
+    coordinate: [1432, 596.0]
     rotation: 0
     state: enabled
-- name: rational_resampler_xxx_0_0
+- name: rational_resampler_xxx_0_0_0
   id: rational_resampler_xxx
   parameters:
     affinity: ''
@@ -707,15 +879,37 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1720, 328.0]
+    coordinate: [272, 532.0]
     rotation: 0
-    state: enabled
+    state: disabled
+- name: rational_resampler_xxx_0_0_0_0
+  id: rational_resampler_xxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    decim: samp_rate
+    fbw: '0'
+    interp: Base_samp_rate
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    taps: '[]'
+    type: fff
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1704, 236.0]
+    rotation: 0
+    state: disabled
 
 connections:
-- [analog_quadrature_demod_cf_0, '0', qtgui_time_sink_x_0, '0']
-- [analog_quadrature_demod_cf_0, '0', rational_resampler_xxx_0_0, '0']
-- [band_pass_filter_0_0_0, '0', analog_quadrature_demod_cf_0, '0']
-- [band_pass_filter_0_0_0, '0', qtgui_waterfall_sink_x_1, '0']
+- [analog_quadrature_demod_cf_0_0, '0', qtgui_time_sink_x_0_1, '0']
+- [analog_quadrature_demod_cf_0_0, '0', rational_resampler_xxx_0_0_0, '0']
+- [analog_quadrature_demod_cf_0_0_0, '0', rational_resampler_xxx_0_0_0_0, '0']
+- [band_pass_filter_0_0_0, '0', analog_quadrature_demod_cf_0_0_0, '0']
+- [band_pass_filter_0_0_0, '0', logpwrfft_x_0, '0']
+- [band_pass_filter_0_0_0, '0', qtgui_waterfall_sink_x_0, '0']
 - [band_pass_filter_0_0_0_0, '0', channels_channel_model_0, '0']
 - [blocks_multiply_const_vxx_0, '0', blocks_vco_c_0_0, '0']
 - [blocks_multiply_const_vxx_0_0, '0', blocks_multiply_const_vxx_0, '0']
@@ -723,12 +917,16 @@ connections:
 - [blocks_repeat_0, '0', blocks_throttle2_0, '0']
 - [blocks_throttle2_0, '0', blocks_multiply_const_vxx_0_0, '0']
 - [blocks_vco_c_0_0, '0', blocks_multiply_const_vxx_0_1, '0']
+- [blocks_vector_source_x_0, '0', blocks_vector_to_stream_0, '0']
 - [blocks_vector_to_stream_0, '0', blocks_repeat_0, '0']
+- [blocks_vector_to_stream_1, '0', network_udp_sink_0, '0']
 - [channels_channel_model_0, '0', band_pass_filter_0_0_0, '0']
 - [epy_block_0, '0', blocks_vector_to_stream_0, '0']
+- [logpwrfft_x_0, '0', blocks_vector_to_stream_1, '0']
+- [logpwrfft_x_0, '0', qtgui_vector_sink_f_0, '0']
 - [network_udp_source_0, '0', epy_block_0, '0']
-- [rational_resampler_xxx_0_0, '0', qtgui_time_sink_x_0_0, '0']
+- [rational_resampler_xxx_0_0_0_0, '0', qtgui_time_sink_x_0_1_0, '0']
 
 metadata:
   file_format: 1
-  grc_version: 3.10.9.2
+  grc_version: 3.10.12.0

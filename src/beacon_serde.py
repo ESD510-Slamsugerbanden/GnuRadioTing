@@ -7,8 +7,7 @@ import socket
 import logging
 import gold_codes 
 import time 
-import plotly.express as px
-import array
+
 
 
 
@@ -167,14 +166,14 @@ class Beacon_decoder:
             size = len(fft_samples)
 
             ##frekvenser under 0 bliver gemt som et 0
-            #C_1 = np.sum(fft_samples[0:int(size/2)])
+            C_1 = np.sum(np.pow(10, np.divide(fft_samples[0:int(size/2)],10)))
             ##frekvenser over 0 blive gemt som et 1
-            #C_2 = np.sum(fft_samples[int(size/2):size])
+            C_2 = np.sum(np.pow(10,np.divide(fft_samples[int(size/2):size], 10)))
 
 
             #Puts them in the buffer
-            self.code_buf.put(fft_samples)
-            self.RSSI_buf.put(fft_samples)
+            self.code_buf.put(C_1-C_2)
+            self.RSSI_buf.put(C_1+C_2)
 
             #print("rssi: {:.3f}\t , corr: {:.3f}".format(C_1 + C_2,C_1 - C_2))
             xcorr_score = Beacon_decoder.correlate(self.code_buf.buffer,self.code_vector)
@@ -186,7 +185,7 @@ class Beacon_decoder:
                 #Gives a little PLL functionality
             
             
-            if (i >= (chip_period*(1-i_modifier))):
+            if (i > (chip_period*(1-i_modifier))):
                 self.lastest = True
                 self.last_corr = x_corr_max 
                 self.last_rssi = rssi_max
@@ -195,9 +194,9 @@ class Beacon_decoder:
                 temp_corr = []
                 phase_error = (chip_period/2 - i_max)
                 i_term = phase_error * K_i
-                i_modifier = phase_error*K_p + i_term
+                i_modifier = 0 #phase_error*K_p + i_term
                 i = 0
-                #print("rssi: {:.4f}\t , corr: {:.4f}, \t i_max:= {:.0f}, new i={:.0f}".format(self.last_rssi, self.last_corr, i_max, i))
+                print("rssi: {:.4f}\t , corr: {:.4f}, \t i_max:= {:.0f}, new i={:.0f}".format(self.last_rssi, self.last_corr, i_max, i))
                 #print("most likely: {:.2f}".format(x_corr_max))
                 
                 x_corr_max = 0
@@ -226,9 +225,9 @@ class Beacon_decoder:
 
 
     class Input_stream:
-        def __init__(self, host: str="127.0.0.1", port:int=5005, f_s:int=5):
+        def __init__(self, host: str="127.0.0.1", port:int=5006, f_s:int=5):
 
-            self.num_floats = 1
+            self.num_floats = 256
             self.f_s = f_s
             self.host = host
             self.port = port
@@ -267,4 +266,11 @@ class Beacon_decoder:
 
 
 if __name__ == "__main__":
+
+    beacon_decoder = Beacon_decoder(my_id=1) #Sets up a decoder looking for the given ID
+
+    beacon_decoder.start() #starts the decoder in the background
+    
+    
+
     pass
