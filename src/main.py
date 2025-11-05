@@ -21,7 +21,7 @@ if __name__ == "__main__":
     beacon_decoder = Beacon_decoder(my_id=1) #Sets up a decoder looking for the given ID
     beacon_decoder.start() #starts the decoder in the background
 
-    pik =0
+    pik =0 
     rssi = [[], [], [], []]
     angles = [[], [], [], []]
     print("Starter svinet")

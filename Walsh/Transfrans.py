@@ -92,7 +92,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
 
         self.uhd_usrp_source_0.set_center_freq(2490000000, 0)
         self.uhd_usrp_source_0.set_antenna("RX2", 0)
-        self.uhd_usrp_source_0.set_gain(40, 0)
+        self.uhd_usrp_source_0.set_gain(30, 0)
         self.qtgui_waterfall_sink_x_0 = qtgui.waterfall_sink_c(
             1024, #size
             window.WIN_BLACKMAN_hARRIS, #wintype

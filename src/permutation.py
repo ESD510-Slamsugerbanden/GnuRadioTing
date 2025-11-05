@@ -1,21 +1,23 @@
 import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+#import plotly.graph_objects as go
+#from plotly.subplots import make_subplots
 import piss_filters as flt
-from get_rssi import get_rssi
+#from get_rssi import get_rssi
 
 
 
 class permutation_controller:
     def __init__(self, T_s, start_theta):
-        self.w_n = 4*np.pi
+        self.w_n = 0.8*np.pi
         self.highpass = flt.Highpass(self.w_n, T_s)
-        self.lowpass = flt.Lowpass(self.w_n/4, T_s)
+        self.lowpass = flt.Lowpass(self.w_n, T_s)
+        self.hp_theta = flt.Highpass(self.w_n, T_s)
+        self.lp_theta  = flt.Lowpass(self.w_n*8, T_s)
         self.T_s = T_s
-        self.permu_A = np.deg2rad(3) #How big should the permutation be in radians
-        self.ki = 1600
-        self.ki2 = 100
-        self.w_per = 10*np.pi
+        self.permu_A = np.deg2rad(8) #How big should the permutation be in radians
+        self.ki = 8
+        self.ki2 = 0
+        self.w_per = 3*np.pi
         self.probe_counter = 0
         self.theta_i = start_theta
         self.theta_i2 = 0
@@ -25,9 +27,13 @@ class permutation_controller:
         self.last = 0
         pass
 
-    def compute(self, rssi):
+    def compute(self, rssi, true_theta):
+        d_theta = self.hp_theta.filter(true_theta)
+        d_theta = self.lp_theta.filter(d_theta)
+        est_perm = np.sin(self.probe_counter * self.T_s * self.w_per - np.deg2rad(20))
+        print(d_theta)
         hp_res = self.highpass.filter(rssi)
-        temp = self.lowpass.filter(self.T_s * self.permutation * hp_res * self.ki) 
+        temp = self.lowpass.filter(self.T_s * d_theta   * hp_res * self.ki) 
         self.theta_i += temp
         self.theta_i2 += self.theta_i / self.ki
         
@@ -40,61 +46,41 @@ class permutation_controller:
         return self.permutation + self.theta_i + self.theta_i2 * self.ki2
 
 
+#andres bibs
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+
+#vores biblioteker
+from Rotax import ez_comm #Uart controller for the motor
+from beacon_serde import Beacon_decoder
+import switch as sw
 
 
 if __name__ == "__main__":
-
-    theta = np.linspace(0, np.pi*2, 100)
-    amplitude = 10* np.log10(get_rssi(theta)[0])
+    tarm = ez_comm("/dev/ttyUSB0") #controller for the arm
+    beacon_decoder = Beacon_decoder(my_id=1) #Sets up a decoder looking for the given ID
+    beacon_decoder.start() #starts the decoder in the background
+    tarm.set_pos(0, 20)
+    T_s = 8/(68)
+    sw.set_switch(1)
+    ctrl = permutation_controller(T_s, np.deg2rad(0))
     
     
-    
-    T_s = 1/20
-    t = 0
-    theta_start = np.deg2rad(30)
-    ctrl = permutation_controller(T_s, theta_start)
-    rssi_res = []
-    theta_res = []
-    theta = theta_start
-    theta_real = []
-    time = np.arange(10/T_s)*T_s
-    
-    for t in time:
-        rssi, theta_target =get_rssi(theta, t)
-        rssi = rssi*0.6
-        theta_real.append(theta_target)
-        rssi_res.append(rssi)
-        theta = ctrl.compute(rssi)
-        theta_res.append(theta)
+    while(True):
 
-    # Opret subplots (2 rækker, 1 kolonne)
-    fig = make_subplots(
-        rows=2, cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.1,
-        subplot_titles=("Real beacon position & estimated beacon position", "RSSI readings")
-    )
 
-    # Øverste plot (θ-data)
-    fig.add_trace(go.Scatter(x=time, y=theta_real, name="Real theta"), row=1, col=1)
-    fig.add_trace(go.Scatter(x=time, y=theta_res, name="Probed theta"), row=1, col=1)
+        if(beacon_decoder.avaliable()):
+            rssi, corr = beacon_decoder.get_lastest()   
+            azi, _ = tarm.get_pos()
+            theta = np.rad2deg(ctrl.compute(rssi, np.deg2rad(azi)))
 
-    # Nederste plot (RSSI + kontrol)
-    fig.add_trace(go.Scatter(x=time, y=rssi_res, name="RSSI readings"), row=2, col=1)
-    fig.add_trace(go.Scatter(x=time, y=ctrl.i_log, name="Modulated reading"), row=2, col=1)
-    fig.add_trace(go.Scatter(x=time, y=ctrl.hp_log, name="High pass filtered"), row=2, col=1)
+            theta = min(theta, 90)
+            theta = max(theta, -90)
+            if theta != float('nan'):
+                tarm.set_pos(theta, 50)
 
-    # Layout
-    fig.update_layout(
-        height=700,
-        yaxis_title="Angle [rad]",
-        xaxis2_title="Time [s]",
-        yaxis2_title="RSSI",
-        template="plotly_white"
-    )
 
-    # Gør legend fælles og pæn
-    fig.update_layout(legend=dict(yanchor="top", y=1.05, xanchor="left", x=0.01))
-
-    fig.show()
-
+            print("RSSI {:.2f},\t Theta: {:.2f}\t DIR:{:.2f} \n".format(rssi, theta, ctrl.theta_i))
