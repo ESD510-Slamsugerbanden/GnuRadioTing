@@ -28,7 +28,7 @@ import time
 class Beacon_encoder:
     
     
-    def __init__(self, my_id = 0, n=5, port=5007):
+    def __init__(self, my_id = 0, n=8, port=5007):
         
         self.preamble = 0xA0
         self.num_blocks = 16
@@ -40,12 +40,14 @@ class Beacon_encoder:
 
         # Example: n = 5 (length = 31)
         # Preferred polynomials for n=5 are often [5,2] and [5,4,3,2]
-        poly1 = [5, 2]          # x^5 + x^2 + 1
-        poly2 = [5, 4, 3, 2]    # x^5 + x^4 + x^3 + x^2 + 1
-        seed = np.array([1, 0, 0, 0, 1])
-        self.code_table = gold_codes.gold_codes(n, poly1, poly2, seed)
-        self.code_table = self.code_table*2 -1 #får det til at gå fra +1 til -1
-        self.code_vector = np.flip(self.code_table[my_id]) #When in doubt flip
+        #poly1 = [5, 2]          # x^5 + x^2 + 1
+        #poly2 = [5, 4, 3, 2]    # x^5 + x^4 + x^3 + x^2 + 1
+        #seed = np.array([1, 0, 0, 0, 1])
+        #self.code_table = gold_codes.gold_codes(n, poly1, poly2, seed)
+        #self.code_table = self.code_table*2 -1 #får det til at gå fra +1 til -1
+        self.code_table = hadamard(n)
+
+        self.code_vector = self.code_table[my_id, :]#np.flip(self.code_table[my_id]) #When in doubt flip
         self.thread_handle = threading.Thread(target=self._internal_runner)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind(("127.0.0.1", port))
@@ -103,20 +105,24 @@ class Beacon_decoder:
             self.buffer = np.roll(self.buffer, 1)
             self.buffer[0] = sample
 
-    def __init__(self, my_id = 0, n = 5, samples_pr_symbol=3, port=5006):
+    def __init__(self, my_id = 0, n = 8, samples_pr_symbol=3, port=5006):
         self.sps = samples_pr_symbol #samples pr symbol
-        self.num_syms = 2**n-1 #number of symbols allowed
         logging.info("Initializing decoder")
 
         poly1 = [5, 2]          # x^5 + x^2 + 1
         poly2 = [5, 4, 3, 2]    # x^5 + x^4 + x^3 + x^2 + 1
         seed = np.array([1, 0, 0, 0, 1])
 
-        self.code_table = gold_codes.gold_codes(n, poly1, poly2, seed)
-        self.code_table = self.code_table*2 -1
+        #self.code_table = gold_codes.gold_codes(n, poly1, poly2, seed)
+        #self.code_table = self.code_table*2 -1
         
+        self.code_table = hadamard(n)
+        #self.code_vector = np.repeat(self.code_table[my_id], self.sps)
+        #self.code_vector = np.flip(self.code_vector)
         self.code_vector = np.repeat(self.code_table[my_id], self.sps)
-        self.code_vector = np.flip(self.code_vector)
+        self.num_syms = n #number of symbols allowed
+        
+        
         print("looking for this bitch")
         print(self.code_table[my_id])
         #self.code_table = hadamard(self.num_syms)
@@ -128,7 +134,6 @@ class Beacon_decoder:
         #Sets up the input stream fo later use.
         
         self.input_stream = self.Input_stream(host="127.0.0.1", port=port)
-
 
         ##Starter forberedelser til at køre en thread.
         self.thread_handle = threading.Thread(target=self._internal_runner)
@@ -162,7 +167,7 @@ class Beacon_decoder:
             #Gets the FFT samples
 
             fft_samples = self.input_stream.fetch_samples()
-            
+            fft_samples = np.add(fft_samples, 30)
             size = len(fft_samples)
 
             ##frekvenser under 0 bliver gemt som et 0
@@ -196,7 +201,7 @@ class Beacon_decoder:
                 i_term = phase_error * K_i
                 i_modifier = 0 #phase_error*K_p + i_term
                 i = 0
-                print("rssi: {:.4f}\t , corr: {:.4f}, \t i_max:= {:.0f}, new i={:.0f}".format(self.last_rssi, self.last_corr, i_max, i))
+                #print("rssi: {:.4f}\t , corr: {:.4f}, \t i_max:= {:.0f}, new i={:.0f}".format(self.last_rssi, self.last_corr, i_max, i))
                 #print("most likely: {:.2f}".format(x_corr_max))
                 
                 x_corr_max = 0
@@ -221,6 +226,7 @@ class Beacon_decoder:
 
 
     def get_lastest(self):
+        self.lastest = False
         return (self.last_rssi, self.last_corr)
 
 
@@ -271,6 +277,10 @@ if __name__ == "__main__":
 
     beacon_decoder.start() #starts the decoder in the background
     
-    
+    while(True):
+        if(beacon_decoder.avaliable()):
+            rssi, corr = beacon_decoder.get_lastest()
+            print("rssi: {:.4f}\t , corr: {:.4f} \n".format(rssi, corr))
+                            
 
     pass

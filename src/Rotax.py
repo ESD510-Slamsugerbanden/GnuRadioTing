@@ -99,6 +99,6 @@ if __name__ == "__main__":
         #client.set_pos(float(azi)*45, (float(ele)*45) -90)
 
 
-        TARM.set_pos(azi*45.0, 0)
+        TARM.set_pos(azi*45.0, 20)
         TARM.get_pos()
-        time.sleep(0.05)
+        time.sleep(0.05)  
