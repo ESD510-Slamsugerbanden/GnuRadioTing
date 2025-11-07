@@ -13,7 +13,6 @@ class Highpass:
         pass
 
     def filter(self, x):
-        
 
         y = self.a * self.y_1 + self.b * (x - self.x_1)
         self.y_1 = y

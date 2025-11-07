@@ -15,9 +15,9 @@ class permutation_controller:
         self.lp_theta  = flt.Lowpass(self.w_n*8, T_s)
         self.T_s = T_s
         self.permu_A = np.deg2rad(8) #How big should the permutation be in radians
-        self.ki = 8
+        self.ki = 4
         self.ki2 = 0
-        self.w_per = 3*np.pi
+        self.w_per = 1*np.pi
         self.probe_counter = 0
         self.theta_i = start_theta
         self.theta_i2 = 0
@@ -36,18 +36,12 @@ class permutation_controller:
         temp = self.lowpass.filter(self.T_s * d_theta   * hp_res * self.ki) 
         self.theta_i += temp
         self.theta_i2 += self.theta_i / self.ki
-        
-        self.hp_log.append(hp_res)
-        self.i_log.append(temp * 1/self.T_s)
         self.permutation = self.permu_A * np.sin(self.probe_counter * self.T_s * self.w_per)
         self.probe_counter += 1
-        
-        
         return self.permutation + self.theta_i + self.theta_i2 * self.ki2
 
 
 #andres bibs
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -64,23 +58,17 @@ if __name__ == "__main__":
     beacon_decoder = Beacon_decoder(my_id=1) #Sets up a decoder looking for the given ID
     beacon_decoder.start() #starts the decoder in the background
     tarm.set_pos(0, 20)
-    T_s = 8/(68)
+    T_s = 8/(128)
     sw.set_switch(1)
     ctrl = permutation_controller(T_s, np.deg2rad(0))
-    
-    
+
     while(True):
-
-
         if(beacon_decoder.avaliable()):
             rssi, corr = beacon_decoder.get_lastest()   
             azi, _ = tarm.get_pos()
             theta = np.rad2deg(ctrl.compute(rssi, np.deg2rad(azi)))
-
             theta = min(theta, 90)
             theta = max(theta, -90)
             if theta != float('nan'):
-                tarm.set_pos(theta, 50)
-
-
+                tarm.set_pos(theta, 0)
             print("RSSI {:.2f},\t Theta: {:.2f}\t DIR:{:.2f} \n".format(rssi, theta, ctrl.theta_i))

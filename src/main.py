@@ -25,11 +25,15 @@ if __name__ == "__main__":
     rssi = [[], [], [], []]
     angles = [[], [], [], []]
     print("Starter svinet")
+    theta_start = -45
+    theta_stop = 135
     for i in range(4):
         sw.set_switch(i)
-        for a in np.linspace(-45, 135, 90):
-            tarm.set_pos(a, 30) 
-            while(np.abs(tarm.get_pos()[0] - a) > 5):
+        tarm.set_pos(theta_start, 10)
+        time.sleep(0.2) 
+        for a in np.linspace(theta_start, theta_stop, 180):
+            tarm.set_pos(a, 10) 
+            while(np.abs(tarm.get_pos()[0] - a) > 2):
                 pass
             time.sleep(0.01)
             beacon_decoder.flush()

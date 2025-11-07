@@ -68,7 +68,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samples_pr_sym = samples_pr_sym = 3
-        self.Symbol_rate = Symbol_rate = 68
+        self.Symbol_rate = Symbol_rate = 128
         self.sep_freq = sep_freq = 20000
         self.samp_rate = samp_rate = 500000
         self.PI = PI = 3.14159265358979323
