@@ -59,7 +59,7 @@ if __name__ == "__main__":
     beacon_decoder.start() #starts the decoder in the background
     tarm.set_pos(0, 20)
     T_s = 8/(128)
-    sw.set_switch(1)
+    sw.set_switch(0)
     ctrl = permutation_controller(T_s, np.deg2rad(0))
 
     while(True):

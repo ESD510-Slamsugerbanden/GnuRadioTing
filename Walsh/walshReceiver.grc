@@ -218,7 +218,7 @@ blocks:
     alpha7: '1.0'
     alpha8: '1.0'
     alpha9: '1.0'
-    autoscale: 'True'
+    autoscale: 'False'
     average: '0.2'
     color1: '"blue"'
     color10: '"dark blue"'
@@ -231,7 +231,7 @@ blocks:
     color8: '"dark red"'
     color9: '"dark green"'
     comment: ''
-    grid: 'False'
+    grid: 'True'
     gui_hint: ''
     label1: ''
     label10: ''
@@ -268,15 +268,15 @@ blocks:
     x_units: '""'
     y_axis_label: '"y-Axis"'
     y_units: '""'
-    ymax: '1'
-    ymin: '-20'
+    ymax: '-30'
+    ymin: '-100'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
     coordinate: [1744, 356.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: qtgui_waterfall_sink_x_0
   id: qtgui_waterfall_sink_x
   parameters:
@@ -337,7 +337,7 @@ blocks:
     bus_structure: null
     coordinate: [1016, 156.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: uhd_usrp_source_0
   id: uhd_usrp_source
   parameters:
@@ -515,7 +515,7 @@ blocks:
     dc_offs_enb9: default
     dev_addr: '""'
     dev_args: ''
-    gain0: '30'
+    gain0: '20'
     gain1: '0'
     gain10: '0'
     gain11: '0'

@@ -84,6 +84,9 @@ class ez_comm:
 
 
 if __name__ == "__main__":
+
+    import switch as sw
+    sw.set_switch(3)
     #client = UdpProtocolClient("192.168.4.1", 8700)
     TARM = ez_comm("/dev/ttyUSB0")
 
@@ -99,6 +102,6 @@ if __name__ == "__main__":
         #client.set_pos(float(azi)*45, (float(ele)*45) -90)
 
 
-        TARM.set_pos(azi*45.0, 20)
+        TARM.set_pos(90*azi, 60*ele+60)
         TARM.get_pos()
         time.sleep(0.05)  

@@ -26,7 +26,6 @@ from gnuradio import network
 from gnuradio import uhd
 import time
 from gnuradio.fft import logpwrfft
-import sip
 import threading
 
 
@@ -92,81 +91,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
 
         self.uhd_usrp_source_0.set_center_freq(2490000000, 0)
         self.uhd_usrp_source_0.set_antenna("RX2", 0)
-        self.uhd_usrp_source_0.set_gain(30, 0)
-        self.qtgui_waterfall_sink_x_0 = qtgui.waterfall_sink_c(
-            1024, #size
-            window.WIN_BLACKMAN_hARRIS, #wintype
-            0, #fc
-            samp_rate, #bw
-            "", #name
-            1, #number of inputs
-            None # parent
-        )
-        self.qtgui_waterfall_sink_x_0.set_update_time(0.10)
-        self.qtgui_waterfall_sink_x_0.enable_grid(False)
-        self.qtgui_waterfall_sink_x_0.enable_axis_labels(True)
-
-
-
-        labels = ['', '', '', '', '',
-                  '', '', '', '', '']
-        colors = [0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0]
-        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
-                  1.0, 1.0, 1.0, 1.0, 1.0]
-
-        for i in range(1):
-            if len(labels[i]) == 0:
-                self.qtgui_waterfall_sink_x_0.set_line_label(i, "Data {0}".format(i))
-            else:
-                self.qtgui_waterfall_sink_x_0.set_line_label(i, labels[i])
-            self.qtgui_waterfall_sink_x_0.set_color_map(i, colors[i])
-            self.qtgui_waterfall_sink_x_0.set_line_alpha(i, alphas[i])
-
-        self.qtgui_waterfall_sink_x_0.set_intensity_range(-140, 10)
-
-        self._qtgui_waterfall_sink_x_0_win = sip.wrapinstance(self.qtgui_waterfall_sink_x_0.qwidget(), Qt.QWidget)
-
-        self.top_layout.addWidget(self._qtgui_waterfall_sink_x_0_win)
-        self.qtgui_vector_sink_f_0 = qtgui.vector_sink_f(
-            FFT_bins,
-            0,
-            1.0,
-            "x-Axis",
-            "y-Axis",
-            "",
-            1, # Number of inputs
-            None # parent
-        )
-        self.qtgui_vector_sink_f_0.set_update_time(0.10)
-        self.qtgui_vector_sink_f_0.set_y_axis((-20), 1)
-        self.qtgui_vector_sink_f_0.enable_autoscale(True)
-        self.qtgui_vector_sink_f_0.enable_grid(False)
-        self.qtgui_vector_sink_f_0.set_x_axis_units("")
-        self.qtgui_vector_sink_f_0.set_y_axis_units("")
-        self.qtgui_vector_sink_f_0.set_ref_level(0)
-
-
-        labels = ['', '', '', '', '',
-            '', '', '', '', '']
-        widths = [1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1]
-        colors = ["blue", "red", "green", "black", "cyan",
-            "magenta", "yellow", "dark red", "dark green", "dark blue"]
-        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0, 1.0]
-
-        for i in range(1):
-            if len(labels[i]) == 0:
-                self.qtgui_vector_sink_f_0.set_line_label(i, "Data {0}".format(i))
-            else:
-                self.qtgui_vector_sink_f_0.set_line_label(i, labels[i])
-            self.qtgui_vector_sink_f_0.set_line_width(i, widths[i])
-            self.qtgui_vector_sink_f_0.set_line_color(i, colors[i])
-            self.qtgui_vector_sink_f_0.set_line_alpha(i, alphas[i])
-
-        self._qtgui_vector_sink_f_0_win = sip.wrapinstance(self.qtgui_vector_sink_f_0.qwidget(), Qt.QWidget)
-        self.top_layout.addWidget(self._qtgui_vector_sink_f_0_win)
+        self.uhd_usrp_source_0.set_gain(20, 0)
         self.network_udp_sink_0 = network.udp_sink(gr.sizeof_float, 1, '127.0.0.1', 5006, 0, (FFT_bins*4), False)
         self.logpwrfft_x_0 = logpwrfft.logpwrfft_c(
             sample_rate=samp_rate,
@@ -195,9 +120,7 @@ class Transfrans(gr.top_block, Qt.QWidget):
         self.connect((self.band_pass_filter_0_0_0, 0), (self.logpwrfft_x_0, 0))
         self.connect((self.blocks_vector_to_stream_1, 0), (self.network_udp_sink_0, 0))
         self.connect((self.logpwrfft_x_0, 0), (self.blocks_vector_to_stream_1, 0))
-        self.connect((self.logpwrfft_x_0, 0), (self.qtgui_vector_sink_f_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.band_pass_filter_0_0_0, 0))
-        self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_waterfall_sink_x_0, 0))
 
 
     def closeEvent(self, event):
@@ -236,7 +159,6 @@ class Transfrans(gr.top_block, Qt.QWidget):
         self.samp_rate = samp_rate
         self.band_pass_filter_0_0_0.set_taps(firdes.band_pass(1, self.samp_rate, (self.sep_freq-1000), (self.sep_freq+1000), 8000, window.WIN_HAMMING, 6.76))
         self.logpwrfft_x_0.set_sample_rate(self.samp_rate)
-        self.qtgui_waterfall_sink_x_0.set_frequency_range(0, self.samp_rate)
         self.uhd_usrp_source_0.set_samp_rate(self.samp_rate)
 
     def get_PI(self):

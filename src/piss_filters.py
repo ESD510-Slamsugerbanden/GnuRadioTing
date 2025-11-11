@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit
 class Highpass:
     def __init__(self, w_n, T_s):
         
@@ -11,7 +12,7 @@ class Highpass:
         self.a = (1.0 - alpha) / (1.0 + alpha)   # a1
         self.b = 1.0 / (1.0 + alpha)             # b0
         pass
-
+    @jit
     def filter(self, x):
 
         y = self.a * self.y_1 + self.b * (x - self.x_1)
@@ -36,7 +37,8 @@ class Lowpass:
         # Forudberegn koefficienter for effektivitet
         self.a = (2 - w_n * T_s) / (2 + w_n * T_s)
         self.b = w_n * T_s / (2 + w_n * T_s)
-
+    
+    @jit
     def filter(self, x):
         # Diskret 1. ordens lavpasfilter
         y = self.a * self.y_1 + self.b * (x + self.x_1)
