@@ -60,8 +60,8 @@ def get_correlation(samples, lookup):
 
 if __name__ == "__main__":
 
-    scanwidth = np.deg2rad(40)
-    n = 10
+    scanwidth = np.deg2rad(60)
+    n = 130
     sim_results = [[float,float,float,float]]*n
     theta_array = np.linspace(-scanwidth, scanwidth, n)
     for i in range(n):
@@ -71,8 +71,8 @@ if __name__ == "__main__":
     ##Calulates fixed possible simulated results
     #tarm_serv = lp_server(6.28, 0.05)
     
-    #tarm = ez_comm("/dev/ttyUSB0")
-    #azimuth = tarm.get_pos()[0]
+    tarm = ez_comm("/dev/ttyUSB0")
+    azimuth = tarm.get_pos()[0]
     azimuth = 0 
     rssi_calibration = [np.float64(5.135578199722128), np.float64(8.464705345695965), np.float64(6.794669667876534), np.float64(7.907608195544618)]
     rssi_calibration = np.divide(1, rssi_calibration)
@@ -89,6 +89,7 @@ if __name__ == "__main__":
     line = ax.plot([], [])
     line2 = ax.plot([], [])
     line3 = ax.plot([], [])
+    line4 = ax.plot([], [])
     ax.set_ylim(-40,40)
     ax.set_xlim(min(beam_offsets)-10, max(beam_offsets)+10)
 
@@ -98,8 +99,8 @@ if __name__ == "__main__":
 
 
     #print(line)
-    T_s = 256/8 * 1/4
-    k_i = 0.8
+    T_s = 1/256 * 8 *4
+    k_i = 2
     rssi = [0]*4
     rssi_flt  =[0] * 4
     i = 0
@@ -116,17 +117,22 @@ if __name__ == "__main__":
 
 
         rssi_temp, corr = beacon_decoder.get_lastest()
-        rssi_flt[i] = rssi_temp * rssi_calibration[i] #filters[i].filter(rssi_temp)
+        rssi_flt[i] = rssi_temp #* rssi_calibration[i] #filters[i].filter(rssi_temp)
         #rssi_offset = rssi_flt - np.arange(len(beam_offsets))*np.mean(rssi_flt)
-        i_theta, scores = get_correlation(rssi_flt, sim_results)
-        azimuth -= T_s * k_i * theta_array[i_theta]
-        #tarm.set_pos(azimuth, 0)
-
+        
         if(i==0):
-            #print(azimuth)
+            i_theta, scores = get_correlation(rssi_flt, sim_results)
+            azimuth -= T_s * k_i * np.rad2deg(theta_array[i_theta])
+            tarm.set_pos(azimuth, 0)
+
+
+            print(azimuth)
             line[0].set_data(beam_offsets, rssi_flt)
             line2[0].set_data(beam_offsets, sim_results[i_theta]*10)
             line3[0].set_data(np.linspace(-np.rad2deg(scanwidth), np.rad2deg(scanwidth), len(scores)), np.multiply(scores, 1))
+            target_angle = np.rad2deg(theta_array[i_theta])
+            line4[0].set_data([target_angle,target_angle], [-1, 40])
+
             pass
             #print(rssi_flt)
             #print(np.rad2deg(theta_array[i_theta]))

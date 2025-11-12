@@ -25,6 +25,10 @@ if __name__ == "__main__":
     rssi = [[], [], [], []]
     angles = [[], [], [], []]
     print("Starter svinet")
+    tarm.set_zero()
+    time.sleep(1)
+    while(np.abs(tarm.get_pos()[0])  > 2 ):
+        pass
     theta_start = -45
     theta_stop = 135
     for i in range(4):
@@ -64,6 +68,8 @@ if __name__ == "__main__":
 
     for i in range(4):
         ax[i].plot(angles[i], rssi[i], label=f"SW={i}", color=regnbue[i])
+
+
         
     fig.legend()
     plt.show()

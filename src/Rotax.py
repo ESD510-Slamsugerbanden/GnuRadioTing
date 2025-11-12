@@ -81,6 +81,11 @@ class ez_comm:
         self.serial.write(bytes(msg2, encoding="ascii"))
         
 
+    def set_zero(self):
+        msg = "ZA \n"
+        self.serial.write(bytes(msg, encoding="ascii"))
+        #msg2 = "ZE"
+        #self.serial.write(bytes(msg2, encoding="ascii"))
 
 
 if __name__ == "__main__":
