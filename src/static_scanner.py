@@ -22,10 +22,14 @@ class lp_server:
     def start(self):
         self.thread_handle.start()
 
-    def setpos(self, azimuth: float):
+    def set_pos(self, azimuth: float, elevation: float):
         self.pos = azimuth
         
-        
+    
+
+    def get_pos(self):
+        return self.tarm.get_pos()
+
     def _internal_runner(self):
         while True:
             flt = self.filter.filter(self.pos)
@@ -58,26 +62,74 @@ def get_correlation(samples, lookup):
     return max_i, corr_scores
 
 
-if __name__ == "__main__":
+def get_vector(beacon_decoder):
+    rssi = [0, 0, 0, 0]
+    for i in range(4):
+        sw.set_switch(i)
+        beacon_decoder.flush()
+        while(beacon_decoder.avaliable() == False):
+            pass
 
-    scanwidth = np.deg2rad(60)
-    n = 130
+        beacon_decoder.flush()
+        while(beacon_decoder.avaliable() == False):
+            pass
+        rssi[i], corr = beacon_decoder.get_lastest()
+    return rssi
+
+
+def get_calibration_vector(n, scanwidth, elevation):
+    beacon_decoder = Beacon_decoder(my_id=1) #Sets up a decoder looking for the given ID
+    beacon_decoder.start() #starts the decoder in the background
+    tarm = ez_comm("/dev/ttyUSB0")
+    tarm.set_pos(0, elevation)
+    print("Point TARM towards source")
+    name = input()
+    print("starting calibration")
+    sim_results, theta_array = get_sim_vectors(n, scanwidth)
+    tarm.set_pos(np.rad2deg(theta_array[0]), elevation)
+    
+    errors = []
+    for i in range(len(theta_array)):
+        tarm.set_pos(np.rad2deg(theta_array[i]), elevation)
+        while(np.abs(tarm.get_pos()[0] - np.rad2deg(theta_array[i])) > 5):
+            pass
+        rssi = get_vector(beacon_decoder)
+        rssi = rssi / np.linalg.norm(rssi)
+        errors.append(rssi / sim_results[i])
+    
+
+    plt.plot(theta_array, errors)
+    plt.show()
+
+
+
+
+
+
+def get_sim_vectors(n, scanwdith):
     sim_results = [[float,float,float,float]]*n
     theta_array = np.linspace(-scanwidth, scanwidth, n)
     for i in range(n):
         sim_results[i] = np.abs(get_rssi(theta_array[i]))
         sim_results[i] = np.divide(sim_results[i], np.sqrt(np.sum(np.square(sim_results[i]))))#np.divide(sim_results[i], np.sum(sim_results[i]))
         #sim_results[i] = sim_results[i] - np.arange(4)*np.mean(sim_results[i]) 
+    return sim_results, theta_array
+if __name__ == "__main__":
+
+    scanwidth = np.deg2rad(25)
+    n = 130
+    sim_results, theta_array = get_sim_vectors(n, scanwidth)
     ##Calulates fixed possible simulated results
-    #tarm_serv = lp_server(6.28, 0.05)
+    #get_calibration_vector(n, scanwidth, 30)
     
-    tarm = ez_comm("/dev/ttyUSB0")
+    tarm = lp_server(6.28, 0.05)
+    tarm.start()
+    tarm.set_pos(80, -45)
+    time.sleep(3)
+    #tarm = ez_comm("/dev/ttyUSB0")
     azimuth = tarm.get_pos()[0]
     azimuth = 0 
-    rssi_calibration = [np.float64(5.135578199722128), np.float64(8.464705345695965), np.float64(6.794669667876534), np.float64(7.907608195544618)]
-    rssi_calibration = np.divide(1, rssi_calibration)
-    rssi_calibration = np.divide(rssi_calibration, np.max(rssi_calibration))
-    
+    t_last = time.time()
 
     beacon_decoder = Beacon_decoder(my_id=1) #Sets up a decoder looking for the given ID
     beacon_decoder.start() #starts the decoder in the background
@@ -95,12 +147,11 @@ if __name__ == "__main__":
 
     w_n = 1*2*np.pi
     T_s = 1/4
-    filters = [piss_filters.Lowpass(w_n, T_s), piss_filters.Lowpass(w_n, T_s), piss_filters.Lowpass(w_n, T_s), piss_filters.Lowpass(w_n, T_s)]
-
-
+    est_pos  = azimuth
     #print(line)
     T_s = 1/256 * 8 *4
     k_i = 2
+    
     rssi = [0]*4
     rssi_flt  =[0] * 4
     i = 0
@@ -123,12 +174,16 @@ if __name__ == "__main__":
         if(i==0):
             i_theta, scores = get_correlation(rssi_flt, sim_results)
             azimuth -= T_s * k_i * np.rad2deg(theta_array[i_theta])
-            tarm.set_pos(azimuth, 0)
+            current = tarm.get_pos()[0]
+            est_pos = np.rad2deg(-theta_array[i_theta]) + current
 
+            tarm.set_pos(est_pos, 30)
 
-            print(azimuth)
+            t_now = time.time()
+            print("Ts: {:.3f}, azi: {:.2f}".format(t_now - t_last, est_pos))
+            t_last = t_now
             line[0].set_data(beam_offsets, rssi_flt)
-            line2[0].set_data(beam_offsets, sim_results[i_theta]*10)
+            line2[0].set_data(beam_offsets, sim_results[i_theta]*np.linalg.norm(rssi_flt))
             line3[0].set_data(np.linspace(-np.rad2deg(scanwidth), np.rad2deg(scanwidth), len(scores)), np.multiply(scores, 1))
             target_angle = np.rad2deg(theta_array[i_theta])
             line4[0].set_data([target_angle,target_angle], [-1, 40])

@@ -10,7 +10,7 @@ from matplotlib.widgets import Slider
 def get_rssi(theta):
     """Compute the array factors for 4 beam directions."""
     N = 4
-    delta_phi = np.deg2rad([-135, -45, 45, 135])
+    delta_phi = np.deg2rad([-135.66, -44.33, 43.33, 135.66])
     d_x = 0.4
 
     # Signal received from an angle theta at each element
@@ -23,7 +23,7 @@ def get_rssi(theta):
     array_factor = np.sum(combos, axis=0)
 
     # Antenna element pattern (optional weighting)
-    Antenna = np.cos(theta / 2) ** 2
+    Antenna = np.cos(theta / 2) ** 4
 
     return array_factor * Antenna  # Apply weighting if desired
 

@@ -58,7 +58,7 @@ class UdpProtocolClient:
 
 class ez_comm:
     def __init__(self, device: str):
-        self.serial = serial.Serial(device, 115200)
+        self.serial = serial.Serial(device, 115200, timeout=10)
 
     def get_pos(self):
         self.serial.flush()
@@ -84,16 +84,23 @@ class ez_comm:
     def set_zero(self):
         msg = "ZA \n"
         self.serial.write(bytes(msg, encoding="ascii"))
+
+        response = self.serial.readline()
         #msg2 = "ZE"
         #self.serial.write(bytes(msg2, encoding="ascii"))
-
+        if(response == 'OK\n'):
+            return True
+        
+        return False
 
 if __name__ == "__main__":
 
     import switch as sw
     sw.set_switch(3)
     #client = UdpProtocolClient("192.168.4.1", 8700)
-    TARM = ez_comm("/dev/ttyUSB0")
+    tarm = ez_comm("/dev/ttyUSB0")
+    tarm.set_zero()
+
 
     mouse = Controller()
     while(True):
@@ -107,6 +114,6 @@ if __name__ == "__main__":
         #client.set_pos(float(azi)*45, (float(ele)*45) -90)
 
 
-        TARM.set_pos(90*azi, 60*ele+60)
-        TARM.get_pos()
-        time.sleep(0.05)  
+        tarm.set_pos(90*azi, 60*ele+60)
+        tarm.get_pos()
+        time.sleep(0.01)  
