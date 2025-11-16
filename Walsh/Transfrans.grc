@@ -163,7 +163,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [344, 384.0]
+    coordinate: [512, 384.0]
     rotation: 0
     state: enabled
 - name: blocks_vco_c_0_0
@@ -201,7 +201,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [128, 368.0]
+    coordinate: [296, 368.0]
     rotation: 0
     state: enabled
 - name: qtgui_waterfall_sink_x_0
