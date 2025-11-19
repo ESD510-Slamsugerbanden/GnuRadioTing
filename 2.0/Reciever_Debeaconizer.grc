@@ -116,7 +116,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [904, 456.0]
+    coordinate: [744, 392.0]
     rotation: 0
     state: enabled
 - name: blocks_message_debug_0
@@ -149,7 +149,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [704, 452.0]
+    coordinate: [568, 388.0]
     rotation: 0
     state: enabled
 - name: blocks_probe_rate_0
@@ -157,7 +157,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    alpha: '0.15'
+    alpha: '0.5'
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -180,15 +180,16 @@ blocks:
       \ of your block. The arguments to __init__  will\nbe the parameters. All of\
       \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
       from gnuradio import gr\nimport pmt\nimport uhd\nfrom numba import njit\nimport\
-      \ RPi.GPIO as GPIO\n\n\n\nPin1 = 17\nPin2 = 27\n\ndef setup():\n    GPIO.setmode(GPIO.BCM)\n\
-      \    GPIO.setup(Pin1, GPIO.OUT)\n    GPIO.setup(Pin2, GPIO.OUT)\n    GPIO.output(Pin1,\
-      \ GPIO.LOW)\n    GPIO.output(Pin2, GPIO.LOW)\n\ndef set_switch(sw):\n    \n\
-      \    match sw:\n        case 1:\n            GPIO.output(Pin1, GPIO.LOW)\n \
-      \           GPIO.output(Pin2, GPIO.LOW)\n        \n        case 0:\n       \
-      \     GPIO.output(Pin1, GPIO.HIGH)\n            GPIO.output(Pin2, GPIO.LOW)\n\
-      \        \n        case 3:\n            GPIO.output(Pin1, GPIO.LOW)\n      \
-      \      GPIO.output(Pin2, GPIO.HIGH)\n        \n\n        case 2:\n         \
-      \   GPIO.output(Pin1, GPIO.HIGH)\n            GPIO.output(Pin2, GPIO.HIGH)\n\
+      \ RPi.GPIO as GPIO\n\n\n\nPin1 = 17\nPin2 = 27\nPin_led = 0\ndef setup():\n\
+      \    GPIO.setmode(GPIO.BCM)\n    GPIO.setup(Pin1, GPIO.OUT)\n    GPIO.setup(Pin2,\
+      \ GPIO.OUT)\n    GPIO.output(Pin1, GPIO.LOW)\n    GPIO.output(Pin2, GPIO.LOW)\n\
+      \    GPIO.setup(Pin_led, GPIO.OUT)\n    GPIO.output(Pin_led, GPIO.LOW)\n\ndef\
+      \ set_switch(sw):\n    \n    match sw:\n        case 1:\n            GPIO.output(Pin1,\
+      \ GPIO.LOW)\n            GPIO.output(Pin2, GPIO.LOW)\n        \n        case\
+      \ 0:\n            GPIO.output(Pin1, GPIO.HIGH)\n            GPIO.output(Pin2,\
+      \ GPIO.LOW)\n        \n        case 3:\n            GPIO.output(Pin1, GPIO.LOW)\n\
+      \            GPIO.output(Pin2, GPIO.HIGH)\n        \n\n        case 2:\n   \
+      \         GPIO.output(Pin1, GPIO.HIGH)\n            GPIO.output(Pin2, GPIO.HIGH)\n\
       \n\n\n\n######################################################\n# R\xD8V LANG\
       \ OG TR\xC6LS KODE FOR AT LAVE NOGLE GOLDCODES # xoxo Malther\n######################################################\n\
       \n\ndef lfsr_sequence(poly, seed, n):\n    \"\"\"Generate an m-sequence using\
@@ -220,7 +221,7 @@ blocks:
       \ = 4, gold_code=1, sps=3, minislot_delay=50, correlation_threshold=0.05): \
       \ # only default arguments here\n        \"\"\"Jydesnak DE-beaconizer\"\"\"\n\
       \        gr.sync_block.__init__(\n            self,\n            name='Jydesnak\
-      \ DE-BEACONIZER',   # will show up in GRC\n            in_sig=[np.float32],\n\
+      \ DE-BEACONIZER',   # will show up in GRC\n            in_sig=[np.float32, np.float32],\n\
       \            out_sig=[np.float32],\n        )\n        self.message_port_register_out(pmt.intern(\"\
       Corr OUT\"))\n        self.burst_period = burst_period ##How often we expect\
       \ the beacon to repeat itself\n        self.bursts = bursts #How many bursts\
@@ -229,54 +230,70 @@ blocks:
       \ vores SCHLONG vektor der kan bruges\n        self.mycode = np.flip(self.mycode)\
       \ #FLips to match what we expect in out buffer\n        self.vectorlength =\
       \ len(self.mycode) #Length of the vector in samples\n        self.buffer = np.zeros(self.vectorlength,\
-      \ dtype=np.float32)\n        self.correlation_threshold = correlation_threshold\n\
-      \        self.maxcorr = 0\n        self.i_maxcorr = 0\n        ###STUFF for\
-      \ locking onto our target in time\n        self.minislot = int(self.vectorlength/4)\n\
+      \ dtype=np.float32)\n        self.rssi_buffer = np.zeros(int(self.vectorlength\
+      \ * 1.2), dtype=np.float32)\n        self.rssi_est_buffer = np.zeros(4, dtype=np.float32)\n\
+      \        \n        self.correlation_threshold = correlation_threshold\n    \
+      \    self.maxcorr = 0\n        self.i_maxcorr = 0\n        ###STUFF for locking\
+      \ onto our target in time\n        self.minislot = int(self.vectorlength/4)\n\
       \        self.set_max_output_buffer(0, self.minislot)\n        self.T_search\
       \ = int(self.minislot*6) \n        self.switch_number = 0\n        self.usrp\
       \ = None\n        self.cooldown = 0 \n        self.minislot_delay = minislot_delay\n\
-      \        self.locks = 0\n        self.corrbuffer = np.zeros(4)    \n\n\n   \
-      \ def start(self):\n        print(f\"[DE-beaconizer]: minislot: {self.minislot},\
+      \        self.locks = 0\n        self.corrbuffer = np.zeros(4)    \n       \
+      \ \n\n    def start(self):\n        print(f\"[DE-beaconizer]: minislot: {self.minislot},\
       \ \\t burst period: {self.burst_period}\")\n        # trigger JIT compile\n\
       \        numba_kernel(np.zeros(1, np.float32),\n                     self.buffer,\n\
       \                     self.mycode,\n                     self.correlation_threshold)\n\
       \        self.usrp = uhd.usrp.MultiUSRP() ##Finder den f\xF8rste og den bedste\
       \ USRP\n        self.usrp.set_gpio_attr(\"FP0\", \"DDR\", 0xFF, 0xF0) ##S\xE6\
       tter alle GPIO'er som output\n        self.usrp.set_gpio_attr(\"FP0\", \"CTRL\"\
-      , 0x00, 0xF0)\n\n        setup()\n        set_switch(1)\n        return True\n\
-      \n    def work(self, input_items, output_items):\n        inp = input_items[0]\n\
-      \        out = output_items[0]\n        N = len(out)\n        # Call compiled\
+      , 0x00, 0xF0)\n        \n        \n        setup()\n        set_switch(1)\n\
+      \        return True\n\n\n\n    def work(self, input_items, output_items):\n\
+      \        inp = input_items[0]\n        \n        in_pwr = input_items[1]\n\n\
+      \        rssi_len = int(len(in_pwr))\n        self.rssi_buffer = np.roll(self.rssi_buffer,\
+      \ rssi_len)        \n        self.rssi_buffer[:rssi_len] = in_pwr\n\n\n    \
+      \    out = output_items[0]\n        N = len(out)\n\n\n\n\n        # Call compiled\
       \ kernel\n        output, peakflag, maxcorr, i_maxcorr = numba_kernel(\n   \
       \         inp, \n            self.buffer,\n            self.mycode,\n      \
       \      self.correlation_threshold\n        )\n\n        out[:] = output\n\n\
       \        self.cooldown -= N\n\n        # Handle tagging\n        if peakflag\
       \ and self.cooldown <= 0:\n            self.cooldown = self.vectorlength / 2\n\
       \            self.corrbuffer = np.roll(self.corrbuffer,  1)\n            self.corrbuffer[0]\
-      \ = maxcorr\n            \n            key   = pmt.intern(\"suspekt\")\n   \
-      \         value = pmt.from_float(maxcorr)\n            offset = self.nitems_written(0)\
-      \ + int(i_maxcorr)\n            self.add_item_tag(0, offset, key, value)\n \
-      \           key   = pmt.intern(\"SW\")\n            value = pmt.from_long(int(self.switch_number))\n\
-      \            offset = self.nitems_written(0) + int(N)\n            self.add_item_tag(0,\
+      \ = maxcorr\n\n\n\n            ##Vi har set et peak\n            key   = pmt.intern(\"\
+      suspekt\")\n            value = pmt.from_float(maxcorr)\n            offset\
+      \ = self.nitems_written(0) + int(i_maxcorr)\n            self.add_item_tag(0,\
+      \ offset, key, value)\n\n            #S\xE5 vi noterer lige hvad RSSI var p\xE5\
+      \ det g\xE6ldende tidspunkt\n            self.rssi_est_buffer = np.roll(self.rssi_est_buffer,\
+      \ 1)\n            self.rssi_est_buffer[0] = np.sum(self.rssi_buffer)\n\n   \
+      \         ##Skriver ud at vi skifter switchen\n            key   = pmt.intern(\"\
+      SW\")\n            value = pmt.from_long(int(self.switch_number))\n        \
+      \    offset = self.nitems_written(0) + int(N)\n            self.add_item_tag(0,\
       \ offset, key, value)\n            if(self.switch_number == 0):\n          \
-      \      key   = pmt.intern(\"TRIG\")\n                value = pmt.from_long(int(self.locks))\n\
-      \                offset = self.nitems_written(0) + int(N)\n                self.add_item_tag(0,\
+      \      GPIO.output(Pin_led, GPIO.HIGH)\n\n                key   = pmt.intern(\"\
+      TRIG\")\n                value = pmt.from_long(int(self.locks))\n          \
+      \      offset = self.nitems_written(0) + int(N)\n                self.add_item_tag(0,\
       \ offset, key, value)\n                \n                if np.all(np.multiply(self.corrbuffer,\
       \ [1, -1, -1, 1]) > 0):\n                    self.locks += 1\n             \
-      \   else:\n                    self.locks = 0\n            if(self.switch_number\
+      \   else:\n                    self.locks = 0\n\n            \n            if(self.switch_number\
       \ == 3 and self.locks > 5):\n                pmt_msg = pmt.make_dict()\n   \
       \             pmt_msg = pmt.dict_add(pmt_msg, pmt.intern(\"CH0\"), pmt.from_float(float(self.corrbuffer[0])))\n\
       \                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern(\"CH1\"), pmt.from_float(float(self.corrbuffer[1])))\n\
       \                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern(\"CH2\"), pmt.from_float(float(self.corrbuffer[2])))\n\
       \                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern(\"CH3\"), pmt.from_float(float(self.corrbuffer[3])))\n\
-      \                pmt_msg = pmt.dict_add(\n                    pmt_msg,\n   \
-      \                 pmt.intern(\"Locks\"),\n                    pmt.from_float(float(self.locks))\n\
-      \                )\n                self.message_port_pub(pmt.intern(\"Corr\
-      \ OUT\"), pmt_msg)\n\n            if(maxcorr < 0 and (self.switch_number ==\
-      \ 2 or self.switch_number == 3)):\n                self.switch_number = (self.switch_number\
-      \ +1) % 4\n            if(maxcorr > 0 and (self.switch_number == 0 or self.switch_number\
-      \ == 1)):\n                self.switch_number = (self.switch_number +1) % 4\n\
-      \n\n            set_switch(self.switch_number)\n            \n        return\
-      \ N"
+      \                \n                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern(\"\
+      RSSI0\"), pmt.from_float(float(self.rssi_est_buffer[0])))\n                pmt_msg\
+      \ = pmt.dict_add(pmt_msg, pmt.intern(\"RSSI1\"), pmt.from_float(float(self.rssi_est_buffer[1])))\n\
+      \                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern(\"RSSI2\"), pmt.from_float(float(self.rssi_est_buffer[2])))\n\
+      \                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern(\"RSSI3\"), pmt.from_float(float(self.rssi_est_buffer[3])))\n\
+      \                \n                \n                \n                pmt_msg\
+      \ = pmt.dict_add(\n                    pmt_msg,\n                    pmt.intern(\"\
+      Locks\"),\n                    pmt.from_float(float(self.locks))\n         \
+      \       )\n                GPIO.output(Pin_led, GPIO.LOW)\n\n              \
+      \  self.message_port_pub(pmt.intern(\"Corr OUT\"), pmt_msg)\n\n            if(maxcorr\
+      \ < 0 and (self.switch_number == 2 or self.switch_number == 3)):\n         \
+      \       self.switch_number = (self.switch_number +1) % 4\n            if(maxcorr\
+      \ > 0 and (self.switch_number == 0 or self.switch_number == 1)):\n         \
+      \       self.switch_number = (self.switch_number +1) % 4\n\n\n            set_switch(self.switch_number)\n\
+      \            \n        return N"
     affinity: ''
     alias: ''
     burst_period: '800'
@@ -291,13 +308,62 @@ blocks:
   states:
     _io_cache: ('Jydesnak DE-BEACONIZER', 'blk', [('burst_period', '100'), ('bursts',
       '4'), ('gold_code', '1'), ('sps', '3'), ('minislot_delay', '50'), ('correlation_threshold',
-      '0.05')], [('0', 'float', 1)], [('0', 'float', 1), ('Corr OUT', 'message', 1)],
-      'Embedded Python Block example - a simple multiply const', ['burst_period',
-      'bursts', 'correlation_threshold', 'minislot_delay', 'sps'])
+      '0.05')], [('0', 'float', 1), ('1', 'float', 1)], [('0', 'float', 1), ('Corr
+      OUT', 'message', 1)], 'Embedded Python Block example - a simple multiply const',
+      ['burst_period', 'bursts', 'correlation_threshold', 'minislot_delay', 'sps'])
     bus_sink: false
     bus_source: false
     bus_structure: null
     coordinate: [848, 100.0]
+    rotation: 0
+    state: enabled
+- name: epy_block_1
+  id: epy_block
+  parameters:
+    Port: '8700'
+    _source_code: "\"\"\"\nEmbedded Python Blocks:\n\nEach time this file is saved,\
+      \ GRC will instantiate the first class it finds\nto get ports and parameters\
+      \ of your block. The arguments to __init__  will\nbe the parameters. All of\
+      \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
+      from gnuradio import gr\nfrom gnuradio import gr\nimport pmt\nimport socket\
+      \ as sock\nimport struct\n\n\n\n\nclass blk(gr.sync_block):  # other base classes\
+      \ are basic_block, decim_block, interp_block\n    \"\"\"Embedded Python Block\
+      \ example - a simple multiply const\"\"\"\n\n    def __init__(self, Port=8700):\
+      \  # only default arguments here\n        \"\"\"arguments to this function show\
+      \ up as parameters in GRC\"\"\"\n        gr.sync_block.__init__(\n         \
+      \   self,\n            name='MSQ UDP sink',   # will show up in GRC\n      \
+      \      in_sig=[],\n            out_sig=[]\n        )\n        self.message_port_register_in(pmt.intern(\"\
+      MSG in\"))\n\n        # if an attribute with the same name as a parameter is\
+      \ found,\n        # a callback is registered (properties work, too).\n     \
+      \   self.port = Port\n        self.set_msg_handler(pmt.intern(\"MSG in\"), self.handle_msg)\n\
+      \        self.sock = sock.socket(sock.AF_INET, sock.SOCK_DGRAM)\n        \n\n\
+      \n    def handle_msg(self, msg):\n        if pmt.is_dict(msg):\n           \
+      \ \n            keys = [\"CH0\", \"CH1\", \"CH2\", \"CH3\"]\n            ch\
+      \ = np.zeros(4, dtype=np.float32)\n            \n            keys = [\"RSSI0\"\
+      , \"RSSI1\", \"RSSI2\", \"RSSI3\"]\n            rssi = np.zeros(4, dtype=np.float32)\n\
+      \n\n            buf = bytes()\n            for i in range(len(keys)):\n    \
+      \            ch[i] = pmt.dict_ref(msg, keys[i], pmt.PMT_NIL)\n             \
+      \   buf += struct.pack(\"f\", ch[i])\n            \n            for i in range(len(keys)):\n\
+      \                rssi[i] = pmt.dict_ref(msg, keys[i], pmt.PMT_NIL)\n       \
+      \         buf += struct.pack(\"f\", rssi[i])\n\n\n            locks = pmt.dict_ref(msg,\
+      \ \"Locks\", pmt.PMT_NIL)\n            buf += struct.pack(\"f\", ch[i])    \
+      \        \n            print(f\"Send UDP package len={len(buf)}\")\n       \
+      \     self.sendto(buf, (\"127.0.0.1\", self.port))\n\n        pass\n\n\n   \
+      \ def work(self, input_items, output_items):\n        \"\"\"example: multiply\
+      \ with constant\"\"\"\n        \n        \n        \n        \n        \n  \
+      \      return len(output_items[0])\n"
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    _io_cache: ('MSQ UDP sink', 'blk', [('Port', '8700')], [('MSG in', 'message',
+      1)], [], 'Embedded Python Block example - a simple multiply const', [])
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1472, 156.0]
     rotation: 0
     state: enabled
 - name: low_pass_filter_0
@@ -353,7 +419,7 @@ blocks:
     color9: dark green
     comment: ''
     ctrlpanel: 'False'
-    entags: 'False'
+    entags: 'True'
     grid: 'False'
     gui_hint: ''
     label1: GoldCode corr
@@ -924,12 +990,14 @@ connections:
 - [analog_wfm_rcv_0, '0', qtgui_time_sink_x_0, '2']
 - [band_pass_filter_0, '0', analog_quadrature_demod_cf_0, '0']
 - [band_pass_filter_0, '0', blocks_multiply_const_vxx_0, '0']
+- [blocks_complex_to_mag_squared_0, '0', epy_block_0, '1']
 - [blocks_complex_to_mag_squared_0, '0', qtgui_time_sink_x_0, '1']
 - [blocks_multiply_const_vxx_0, '0', blocks_complex_to_mag_squared_0, '0']
 - [blocks_probe_rate_0, rate, blocks_message_debug_0, print]
 - [epy_block_0, '0', blocks_probe_rate_0, '0']
 - [epy_block_0, '0', qtgui_time_sink_x_0, '0']
 - [epy_block_0, Corr OUT, blocks_message_debug_0, print]
+- [epy_block_0, Corr OUT, epy_block_1, MSG in]
 - [low_pass_filter_0, '0', epy_block_0, '0']
 - [uhd_usrp_source_0_0, '0', analog_wfm_rcv_0, '0']
 - [uhd_usrp_source_0_0, '0', band_pass_filter_0, '0']

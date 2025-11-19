@@ -14,7 +14,7 @@ class lp_server:
         import threading
         self.filter = piss_filters.Lowpass(w_n, T_s_back)
         self.T_s = T_s_back
-        self.tarm = ez_comm("/dev/ttyUSB0")
+        self.tarm = ez_comm("/dev/ttyUSB1")
         self.thread_handle = threading.Thread(target=self._internal_runner)
         self.pos = self.tarm.get_pos()[0]
         self.start_el = -30
@@ -42,8 +42,6 @@ class lp_server:
 
 #vores biblioteker
 from Rotax import ez_comm #Uart controller for the motor
-from beacon_serde import Beacon_decoder
-import switch as sw
 import piss_filters
 
 
@@ -104,7 +102,7 @@ def get_calibration_vector(n, scanwidth, elevation):
 
 
 
-
+from beacon_serde_vs import Beacon_decoder 
 
 def get_sim_vectors(n, scanwdith):
     sim_results = [[float,float,float,float]]*n
@@ -116,23 +114,22 @@ def get_sim_vectors(n, scanwdith):
     return sim_results, theta_array
 if __name__ == "__main__":
 
-    scanwidth = np.deg2rad(25)
-    n = 130
+    scanwidth = np.deg2rad(60)
+    n = 30
     sim_results, theta_array = get_sim_vectors(n, scanwidth)
     ##Calulates fixed possible simulated results
     #get_calibration_vector(n, scanwidth, 30)
     
+    decoder = Beacon_decoder(port=8700)
+    decoder.begin()
+
     tarm = lp_server(6.28, 0.05)
     tarm.start()
-    tarm.set_pos(80, -45)
-    time.sleep(3)
-    #tarm = ez_comm("/dev/ttyUSB0")
-    azimuth = tarm.get_pos()[0]
+
+
     azimuth = 0 
     t_last = time.time()
 
-    beacon_decoder = Beacon_decoder(my_id=1) #Sets up a decoder looking for the given ID
-    beacon_decoder.start() #starts the decoder in the background
     plt.ion()
     beam_offsets = [48, 15, -15, -48]
     fig = plt.figure()
@@ -142,56 +139,38 @@ if __name__ == "__main__":
     line2 = ax.plot([], [])
     line3 = ax.plot([], [])
     line4 = ax.plot([], [])
-    ax.set_ylim(-40,40)
+    ax.set_ylim(-600,600)
     ax.set_xlim(min(beam_offsets)-10, max(beam_offsets)+10)
 
     w_n = 1*2*np.pi
     T_s = 1/4
     est_pos  = azimuth
     #print(line)
-    T_s = 1/256 * 8 *4
-    k_i = 2
+    T_s = 1/5
+    k_i = 1.5
     
     rssi = [0]*4
-    rssi_flt  =[0] * 4
-    i = 0
+
+    decoder.flush()
     while(True):
-        sw.set_switch(i)
-        beacon_decoder.flush()
-        while(beacon_decoder.avaliable() == False):
+        while(decoder.avaliable() == False):
             pass
             plt.pause(0.01)
-        beacon_decoder.flush()
-        while(beacon_decoder.avaliable() == False):
-            pass
-            plt.pause(0.01)
-
-
-        rssi_temp, corr = beacon_decoder.get_lastest()
-        rssi_flt[i] = rssi_temp #* rssi_calibration[i] #filters[i].filter(rssi_temp)
-        #rssi_offset = rssi_flt - np.arange(len(beam_offsets))*np.mean(rssi_flt)
+        rssi, corr = decoder.get_values()
         
-        if(i==0):
-            i_theta, scores = get_correlation(rssi_flt, sim_results)
-            azimuth -= T_s * k_i * np.rad2deg(theta_array[i_theta])
-            current = tarm.get_pos()[0]
-            est_pos = np.rad2deg(-theta_array[i_theta]) + current
+        i_theta, scores = get_correlation(rssi, sim_results)
+        azimuth += T_s * k_i * np.rad2deg(theta_array[i_theta])
 
-            tarm.set_pos(est_pos, 30)
+        #est_pos = np.rad2deg(-theta_array[i_theta])
 
-            t_now = time.time()
-            print("Ts: {:.3f}, azi: {:.2f}".format(t_now - t_last, est_pos))
-            t_last = t_now
-            line[0].set_data(beam_offsets, rssi_flt)
-            line2[0].set_data(beam_offsets, sim_results[i_theta]*np.linalg.norm(rssi_flt))
-            line3[0].set_data(np.linspace(-np.rad2deg(scanwidth), np.rad2deg(scanwidth), len(scores)), np.multiply(scores, 1))
-            target_angle = np.rad2deg(theta_array[i_theta])
-            line4[0].set_data([target_angle,target_angle], [-1, 40])
+        tarm.set_pos(azimuth, 00)
 
-            pass
-            #print(rssi_flt)
-            #print(np.rad2deg(theta_array[i_theta]))
-        i = (i+1) % 4
-        #ax.relim()
-        #ax.autoscale_view()
-
+        t_now = time.time()
+        print("Ts: {:.3f}, azi: {:.2f}".format(t_now - t_last, azimuth))
+        t_last = t_now
+        line[0].set_data(beam_offsets, rssi)
+        line2[0].set_data(beam_offsets, sim_results[i_theta]*np.linalg.norm(rssi))
+        line3[0].set_data(np.linspace(-np.rad2deg(scanwidth), np.rad2deg(scanwidth), len(scores)), np.multiply(scores, 1))
+        target_angle = np.rad2deg(theta_array[i_theta])
+        line4[0].set_data([target_angle,target_angle], [-1, 40])
+        pass
