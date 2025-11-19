@@ -31,3 +31,5 @@ def set_switch(sw):
 
 
 
+if __name__ == "__main__":
+    set_switch(1) 

@@ -91,7 +91,7 @@ class ez_comm:
         if(response == 'OK\n'):
             return True
         
-        return False
+        return Falsec
 
 if __name__ == "__main__":
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     sw.set_switch(3)
     #client = UdpProtocolClient("192.168.4.1", 8700)
     tarm = ez_comm("/dev/ttyUSB0")
-    tarm.set_zero()
+    #tarm.set_zero()
 
 
     mouse = Controller()
@@ -114,6 +114,6 @@ if __name__ == "__main__":
         #client.set_pos(float(azi)*45, (float(ele)*45) -90)
 
 
-        tarm.set_pos(90*azi, 60*ele+60)
+        tarm.set_pos(90*azi, 60*ele+3)
         tarm.get_pos()
         time.sleep(0.01)  
