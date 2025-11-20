@@ -14,7 +14,7 @@ class lp_server:
         import threading
         self.filter = piss_filters.Lowpass(w_n, T_s_back)
         self.T_s = T_s_back
-        self.tarm = ez_comm("/dev/ttyUSB1")
+        self.tarm = ez_comm("/dev/ttyUSB0")
         self.thread_handle = threading.Thread(target=self._internal_runner)
         self.pos = self.tarm.get_pos()[0]
         self.start_el = -30
