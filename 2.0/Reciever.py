@@ -1,245 +1,275 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""
+Embedded Python Blocks:
 
-#
-# SPDX-License-Identifier: GPL-3.0
-#
-# GNU Radio Python Flow Graph
-# Title: Not titled yet
-# Author: admin
-# GNU Radio version: 3.10.12.0
+Each time this file is saved, GRC will instantiate the first class it finds
+to get ports and parameters of your block. The arguments to __init__  will
+be the parameters. All of them are required to have default values!
+"""
 
-from PyQt5 import Qt
-from gnuradio import qtgui
-from gnuradio import analog
-import math
-from gnuradio import blocks
-from gnuradio import blocks, gr
-from gnuradio import filter
-from gnuradio.filter import firdes
+import numpy as np
 from gnuradio import gr
-from gnuradio.fft import window
-import sys
-import signal
-from PyQt5 import Qt
-from argparse import ArgumentParser
-from gnuradio.eng_arg import eng_float, intx
-from gnuradio import eng_notation
-from gnuradio import uhd
-import time
-import Reciever_epy_block_0 as epy_block_0  # embedded python block
-import Reciever_epy_block_1 as epy_block_1  # embedded python block
-import sip
-import threading
+import pmt
+import uhd
+from numba import njit
+import RPi.GPIO as GPIO
 
 
 
-class Reciever(gr.top_block, Qt.QWidget):
+Pin1 = 17
+Pin2 = 27
+Pin_led = 0
 
-    def __init__(self):
-        gr.top_block.__init__(self, "Not titled yet", catch_exceptions=True)
-        Qt.QWidget.__init__(self)
-        self.setWindowTitle("Not titled yet")
-        qtgui.util.check_set_qss()
-        try:
-            self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
-        except BaseException as exc:
-            print(f"Qt GUI: Could not set Icon: {str(exc)}", file=sys.stderr)
-        self.top_scroll_layout = Qt.QVBoxLayout()
-        self.setLayout(self.top_scroll_layout)
-        self.top_scroll = Qt.QScrollArea()
-        self.top_scroll.setFrameStyle(Qt.QFrame.NoFrame)
-        self.top_scroll_layout.addWidget(self.top_scroll)
-        self.top_scroll.setWidgetResizable(True)
-        self.top_widget = Qt.QWidget()
-        self.top_scroll.setWidget(self.top_widget)
-        self.top_layout = Qt.QVBoxLayout(self.top_widget)
-        self.top_grid_layout = Qt.QGridLayout()
-        self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("gnuradio/flowgraphs", "Reciever")
+def setup():
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setup(Pin1, GPIO.OUT)
+    GPIO.setup(Pin2, GPIO.OUT)
+    GPIO.output(Pin1, GPIO.LOW)
+    GPIO.output(Pin2, GPIO.LOW)
+    GPIO.setup(Pin_led, GPIO.OUT)
+    GPIO.output(Pin_led, GPIO.LOW)
 
-        try:
-            geometry = self.settings.value("geometry")
-            if geometry:
-                self.restoreGeometry(geometry)
-        except BaseException as exc:
-            print(f"Qt GUI: Could not restore geometry: {str(exc)}", file=sys.stderr)
-        self.flowgraph_started = threading.Event()
 
-        ##################################################
-        # Variables
-        ##################################################
-        self.samp_rate = samp_rate = 80e3*4
+def set_switch(sw):
+    
+    match sw:
+        case 1:
+            GPIO.output(Pin1, GPIO.LOW)
+            GPIO.output(Pin2, GPIO.LOW)
+        
+        case 0:
+            GPIO.output(Pin1, GPIO.HIGH)
+            GPIO.output(Pin2, GPIO.LOW)
+        
+        case 3:
+            GPIO.output(Pin1, GPIO.LOW)
+            GPIO.output(Pin2, GPIO.HIGH)
+        
 
-        ##################################################
-        # Blocks
-        ##################################################
+        case 2:
+            GPIO.output(Pin1, GPIO.HIGH)
+            GPIO.output(Pin2, GPIO.HIGH)
 
-        self.uhd_usrp_source_0_0 = uhd.usrp_source(
-            ",".join(("", '')),
-            uhd.stream_args(
-                cpu_format="fc32",
-                args='',
-                channels=list(range(0,1)),
-            ),
+
+
+
+######################################################
+# RØV LANG OG TRÆLS KODE FOR AT LAVE NOGLE GOLDCODES # xoxo Malther
+######################################################
+
+
+def lfsr_sequence(poly, seed, n):
+    """Generate an m-sequence using given feedback polynomial (as taps)."""
+    state = seed.copy()
+    seq = np.zeros(2**n - 1, dtype=int)
+    for i in range(len(seq)):
+        seq[i] = state[-1]
+        feedback = np.mod(np.sum(state[np.array(poly) - 1]), 2)
+        state[1:] = state[:-1]
+        state[0] = feedback
+    return seq
+
+def gold_codes(n, poly1, poly2, seed):
+    """Generate Gold code family for degree n LFSRs with given feedback taps."""
+    s1 = lfsr_sequence(poly1, seed.copy(), n)
+    s2 = lfsr_sequence(poly2, seed.copy(), n)
+    N = len(s1)
+    codes = []
+
+    for shift in range(N):
+        s2_shift = np.roll(s2, shift)
+        codes.append(np.bitwise_xor(s1, s2_shift))
+    # Add original sequences too
+    codes.append(s1)
+    codes.append(s2)
+    return np.array(codes)
+
+
+def auto_generate(my_id):
+    """Generate codes using predefined settings"""
+    n = 5
+    poly1 = [5, 2]          # x^5 + x^2 + 1
+    poly2 = [5, 4, 3, 2]    # x^5 + x^4 + x^3 + x^2 + 1
+    seed = np.array([1, 0, 0, 0, 1])
+
+    codes = gold_codes(n, poly1, poly2, seed)
+    return np.float32(codes[my_id])
+
+
+
+@njit
+def numba_kernel(input, buffer, mycode, corr_thres):
+    N = len(input)
+    output = np.empty(N, dtype=np.float32)
+
+    i_maxcorr = -1
+    maxcorr = 0.0
+    peakflag = False
+
+    for i in range(N):
+        for k in range(len(buffer)-1, 0, -1):
+            buffer[k] = buffer[k-1]
+        buffer[0] = input[i]
+
+        corr = np.dot(buffer, mycode) / len(buffer)
+
+        output[i] = corr
+
+        val = abs(corr)
+        if val > corr_thres:
+            maxcorr = corr
+            i_maxcorr = i
+            peakflag = True
+
+    return output, peakflag, maxcorr, i_maxcorr
+
+
+
+SW0 = 0x10
+SW1 = 0x20
+SW2 = 0x40
+SW3 = 0x80
+
+
+class blk(gr.sync_block):  # other base classes are basic_block, decim_block, interp_block
+    """Embedded Python Block example - a simple multiply const"""
+
+    def __init__(self, burst_period=100,bursts = 4, gold_code=1, sps=3, minislot_delay=50, correlation_threshold=0.05):  # only default arguments here
+        """Jydesnak DE-beaconizer"""
+        gr.sync_block.__init__(
+            self,
+            name='Jydesnak DE-BEACONIZER',   # will show up in GRC
+            in_sig=[np.float32, np.float32],
+            out_sig=[np.float32],
         )
-        self.uhd_usrp_source_0_0.set_samp_rate(samp_rate)
-        # No synchronization enforced.
+        self.message_port_register_out(pmt.intern("Corr OUT"))
+        self.burst_period = burst_period ##How often we expect the beacon to repeat itself
+        self.bursts = bursts #How many bursts we expect pr beacon
+        self.sps= sps #Samples per symbol
+        self.mycode = np.subtract(np.repeat(auto_generate(gold_code), self.sps) * 2 , 1)##Genererer vores SCHLONG vektor der kan bruges
+        self.mycode = np.flip(self.mycode) #FLips to match what we expect in out buffer
+        self.vectorlength = len(self.mycode) #Length of the vector in samples
+        self.buffer = np.zeros(self.vectorlength, dtype=np.float32)
+        self.correlation_threshold = correlation_threshold
+        self.maxcorr = 0
+        self.i_maxcorr = 0
+        self.rssi_buffer = np.zeros(int(self.vectorlength*1.2), dtype=np.float32)
+        self.rssi_est_buffer = np.zeros(4, dtype=np.float32)
+        
+        
+        ###STUFF for locking onto our target in time
+        self.minislot = int(self.vectorlength/4)
+        self.set_max_output_buffer(0, self.minislot)
+        self.T_search = int(self.minislot*6) 
+        self.switch_number = 0
+        self.usrp = None
+        self.cooldown = 0 
+        self.minislot_delay = minislot_delay
+        self.locks = 0
+        self.corrbuffer = np.zeros(4)    
 
-        self.uhd_usrp_source_0_0.set_center_freq(int(2.49e9), 0)
-        self.uhd_usrp_source_0_0.set_antenna("RX2", 0)
-        self.uhd_usrp_source_0_0.set_rx_agc(False, 0)
-        self.uhd_usrp_source_0_0.set_gain(30, 0)
-        self.qtgui_time_sink_x_0 = qtgui.time_sink_f(
-            (8192*4), #size
-            samp_rate, #samp_rate
-            "", #name
-            3, #number of inputs
-            None # parent
+
+    def start(self):
+        print(f"[DE-beaconizer]: minislot: {self.minislot}, \t burst period: {self.burst_period}")
+        # trigger JIT compile
+        numba_kernel(np.zeros(1, np.float32),
+                     self.buffer,
+                     self.mycode,
+                     self.correlation_threshold)
+        self.usrp = uhd.usrp.MultiUSRP() ##Finder den første og den bedste USRP
+        self.usrp.set_gpio_attr("FP0", "DDR", 0xFF, 0xF0) ##Sætter alle GPIO'er som output
+        self.usrp.set_gpio_attr("FP0", "CTRL", 0x00, 0xF0)
+
+        setup()
+        set_switch(1)
+        return True
+
+    def work(self, input_items, output_items):
+        inp = input_items[0]
+        out = output_items[0]
+        N = len(out)
+
+        rssi_len = len(input_items[1])
+        #Shift into our RSSI buffer
+        self.rssi_buffer = np.roll(self.rssi_buffer, rssi_len)
+        self.rssi_buffer[:rssi_len] = input_items[1]
+
+
+
+        # Call compiled kernel
+        output, peakflag, maxcorr, i_maxcorr = numba_kernel(
+            inp, 
+            self.buffer,
+            self.mycode,
+            self.correlation_threshold
         )
-        self.qtgui_time_sink_x_0.set_update_time(0.02)
-        self.qtgui_time_sink_x_0.set_y_axis(-1, 1)
 
-        self.qtgui_time_sink_x_0.set_y_label('Amplitude', "")
+        out[:] = output
 
-        self.qtgui_time_sink_x_0.enable_tags(True)
-        self.qtgui_time_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_TAG, qtgui.TRIG_SLOPE_POS, 0.05, 0.01, 0, "TRIG")
-        self.qtgui_time_sink_x_0.enable_autoscale(False)
-        self.qtgui_time_sink_x_0.enable_grid(False)
-        self.qtgui_time_sink_x_0.enable_axis_labels(True)
-        self.qtgui_time_sink_x_0.enable_control_panel(False)
-        self.qtgui_time_sink_x_0.enable_stem_plot(False)
+        self.cooldown -= N
 
-
-        labels = ['GoldCode corr', 'RAW FM-Demod', 'Raw sample (Real)', 'Signal 4', 'Signal 5',
-            'Signal 6', 'Signal 7', 'Signal 8', 'Signal 9', 'Signal 10']
-        widths = [1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1]
-        colors = ['blue', 'red', 'green', 'black', 'cyan',
-            'magenta', 'yellow', 'dark red', 'dark green', 'dark blue']
-        alphas = [1, 0.4, 0.5, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0, 1.0]
-        styles = [1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1]
-        markers = [-1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1]
-
-
-        for i in range(3):
-            if len(labels[i]) == 0:
-                self.qtgui_time_sink_x_0.set_line_label(i, "Data {0}".format(i))
-            else:
-                self.qtgui_time_sink_x_0.set_line_label(i, labels[i])
-            self.qtgui_time_sink_x_0.set_line_width(i, widths[i])
-            self.qtgui_time_sink_x_0.set_line_color(i, colors[i])
-            self.qtgui_time_sink_x_0.set_line_style(i, styles[i])
-            self.qtgui_time_sink_x_0.set_line_marker(i, markers[i])
-            self.qtgui_time_sink_x_0.set_line_alpha(i, alphas[i])
-
-        self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
-        self.top_layout.addWidget(self._qtgui_time_sink_x_0_win)
-        self.low_pass_filter_0 = filter.fir_filter_fff(
-            1,
-            firdes.low_pass(
-                1,
-                samp_rate,
-                30e3,
-                20e3,
-                window.WIN_HAMMING,
-                6.76))
-        self.epy_block_1 = epy_block_1.blk(Port=8700)
-        self.epy_block_0 = epy_block_0.blk(burst_period=800, bursts=4, gold_code=1, sps=20, minislot_delay=50, correlation_threshold=0.9)
-        self.blocks_probe_rate_0 = blocks.probe_rate(gr.sizeof_float*1, 2000.0, 0.5, '')
-        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_cc(5)
-        self.blocks_message_debug_0 = blocks.message_debug(True, gr.log_levels.info)
-        self.blocks_complex_to_mag_squared_0 = blocks.complex_to_mag_squared(1)
-        self.band_pass_filter_0 = filter.fir_filter_ccf(
-            1,
-            firdes.band_pass(
-                1,
-                samp_rate,
-                5e3,
-                15e3,
-                5e3,
-                window.WIN_HAMMING,
-                6.76))
-        self.analog_wfm_rcv_0 = analog.wfm_rcv(
-        	quad_rate=samp_rate,
-        	audio_decimation=1,
-        )
-        self.analog_wfm_rcv_0.set_max_output_buffer(1024)
-        self.analog_quadrature_demod_cf_0 = analog.quadrature_demod_cf((samp_rate/(2*math.pi*10e3)))
-        self.analog_quadrature_demod_cf_0.set_max_output_buffer(512)
-
-
-        ##################################################
-        # Connections
-        ##################################################
-        self.msg_connect((self.blocks_probe_rate_0, 'rate'), (self.blocks_message_debug_0, 'print'))
-        self.msg_connect((self.epy_block_0, 'Corr OUT'), (self.blocks_message_debug_0, 'print'))
-        self.msg_connect((self.epy_block_0, 'Corr OUT'), (self.epy_block_1, 'MSG in'))
-        self.connect((self.analog_quadrature_demod_cf_0, 0), (self.low_pass_filter_0, 0))
-        self.connect((self.analog_wfm_rcv_0, 0), (self.qtgui_time_sink_x_0, 2))
-        self.connect((self.band_pass_filter_0, 0), (self.analog_quadrature_demod_cf_0, 0))
-        self.connect((self.band_pass_filter_0, 0), (self.blocks_multiply_const_vxx_0, 0))
-        self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.epy_block_0, 1))
-        self.connect((self.blocks_complex_to_mag_squared_0, 0), (self.qtgui_time_sink_x_0, 1))
-        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.blocks_complex_to_mag_squared_0, 0))
-        self.connect((self.epy_block_0, 0), (self.blocks_probe_rate_0, 0))
-        self.connect((self.epy_block_0, 0), (self.qtgui_time_sink_x_0, 0))
-        self.connect((self.low_pass_filter_0, 0), (self.epy_block_0, 0))
-        self.connect((self.uhd_usrp_source_0_0, 0), (self.analog_wfm_rcv_0, 0))
-        self.connect((self.uhd_usrp_source_0_0, 0), (self.band_pass_filter_0, 0))
-
-
-    def closeEvent(self, event):
-        self.settings = Qt.QSettings("gnuradio/flowgraphs", "Reciever")
-        self.settings.setValue("geometry", self.saveGeometry())
-        self.stop()
-        self.wait()
-
-        event.accept()
-
-    def get_samp_rate(self):
-        return self.samp_rate
-
-    def set_samp_rate(self, samp_rate):
-        self.samp_rate = samp_rate
-        self.analog_quadrature_demod_cf_0.set_gain((self.samp_rate/(2*math.pi*10e3)))
-        self.band_pass_filter_0.set_taps(firdes.band_pass(1, self.samp_rate, 5e3, 15e3, 5e3, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0.set_taps(firdes.low_pass(1, self.samp_rate, 30e3, 20e3, window.WIN_HAMMING, 6.76))
-        self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
-        self.uhd_usrp_source_0_0.set_samp_rate(self.samp_rate)
+        # Handle tagging
+        if peakflag and self.cooldown <= 0:
+            set_switch((self.switch_number + 1) % 4)
 
 
 
+            self.cooldown = self.vectorlength / 2
+            self.corrbuffer = np.roll(self.corrbuffer,  1)
+            self.corrbuffer[0] = maxcorr
+            
+            key   = pmt.intern("suspekt")
+            value = pmt.from_float(maxcorr)
+            offset = self.nitems_written(0) + int(i_maxcorr)
+            self.add_item_tag(0, offset, key, value)
+            key   = pmt.intern("SW")
+            value = pmt.from_long(int(self.switch_number))
+            offset = self.nitems_written(0) + int(N)
+            self.add_item_tag(0, offset, key, value)
+            
+            ###### Get our RSSI estimate
+            self.rssi_est_buffer = np.roll(self.rssi_est_buffer, 1)
+            self.rssi_est_buffer[0] = np.sum(self.rssi_buffer)
+            
 
-def main(top_block_cls=Reciever, options=None):
+            if(self.switch_number == 0):
+                GPIO.output(Pin_led, GPIO.HIGH)
+                
+                key   = pmt.intern("TRIG")
+                value = pmt.from_long(int(self.locks))
+                offset = self.nitems_written(0) + int(N)
+                self.add_item_tag(0, offset, key, value)
+                
+                if np.all(np.multiply(self.corrbuffer, [1, -1, -1, 1]) > 0):
+                    self.locks += 1
+                else:
+                    self.locks = 0
+            if(self.switch_number == 3 and self.locks > 5):
+                GPIO.output(Pin_led, GPIO.LOW)
+                pmt_msg = pmt.make_dict()
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("CH0"), pmt.from_float(float(self.corrbuffer[0])))
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("CH1"), pmt.from_float(float(self.corrbuffer[1])))
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("CH2"), pmt.from_float(float(self.corrbuffer[2])))
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("CH3"), pmt.from_float(float(self.corrbuffer[3])))
+                
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("RSSI0"), pmt.from_float(float(self.rssi_est_buffer[0])))
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("RSSI1"), pmt.from_float(float(self.rssi_est_buffer[1])))
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("RSSI2"), pmt.from_float(float(self.rssi_est_buffer[2])))
+                pmt_msg = pmt.dict_add(pmt_msg, pmt.intern("RSSI3"), pmt.from_float(float(self.rssi_est_buffer[3])))
+                
+    
+                pmt_msg = pmt.dict_add(
+                    pmt_msg,
+                    pmt.intern("Locks"),
+                    pmt.from_float(float(self.locks))
+                )
+                self.message_port_pub(pmt.intern("Corr OUT"), pmt_msg)
 
-    qapp = Qt.QApplication(sys.argv)
+            if(maxcorr < 0 and (self.switch_number == 2 or self.switch_number == 3)):
+                self.switch_number = (self.switch_number +1) % 4
+            if(maxcorr > 0 and (self.switch_number == 0 or self.switch_number == 1)):
+                self.switch_number = (self.switch_number +1) % 4
 
-    tb = top_block_cls()
 
-    tb.start()
-    tb.flowgraph_started.set()
-
-    tb.show()
-
-    def sig_handler(sig=None, frame=None):
-        tb.stop()
-        tb.wait()
-
-        Qt.QApplication.quit()
-
-    signal.signal(signal.SIGINT, sig_handler)
-    signal.signal(signal.SIGTERM, sig_handler)
-
-    timer = Qt.QTimer()
-    timer.start(500)
-    timer.timeout.connect(lambda: None)
-
-    qapp.exec_()
-
-if __name__ == '__main__':
-    main()
+            
+        return N
