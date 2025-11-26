@@ -4,7 +4,18 @@ import matplotlib.pyplot as plt
 import time
 
 from angle_corr import get_rssi ##Simulated RSSI response
+import atexit
 
+import pandas as pd
+
+list_angle = []
+list_time = []
+list_rssi = []
+list_pos = []
+
+def exit_handler():
+    dataframe = pd.DataFrame(({'Angles':list_angle,'Times':list_time, 'RSSI':list_rssi,'POS':list_pos}))
+    dataframe.to_csv(f"{time.time()}.csv")
 
 
 class lp_server:
@@ -50,14 +61,13 @@ def get_correlation(samples, lookup):
     max_score = -np.inf
     max_i = 0
     corr_scores = [0]*len(lookup)
+    window = np.hanning(len(lookup))/20 + np.ones(len(lookup))
+
     for i in range(len(lookup)):
         res = lookup[i]* samples
         corr_scores[i] = np.sum(res)
-        if(corr_scores[i] > max_score):
-            max_i = i
-            max_score = corr_scores[i]
-         
-    return max_i, corr_scores
+    corr_scores = corr_scores * window
+    return np.argmax(corr_scores), corr_scores
 
 
 def get_vector(beacon_decoder):
@@ -112,8 +122,11 @@ def get_sim_vectors(n, scanwdith):
         sim_results[i] = np.divide(sim_results[i], np.sqrt(np.sum(np.square(sim_results[i]))))#np.divide(sim_results[i], np.sum(sim_results[i]))
         #sim_results[i] = sim_results[i] - np.arange(4)*np.mean(sim_results[i]) 
     return sim_results, theta_array
-if __name__ == "__main__":
 
+
+
+if __name__ == "__main__":
+    atexit.register(exit_handler)
     scanwidth = np.deg2rad(60)
     n = 30
     sim_results, theta_array = get_sim_vectors(n, scanwidth)
@@ -139,7 +152,7 @@ if __name__ == "__main__":
     line2 = ax.plot([], [])
     line3 = ax.plot([], [])
     line4 = ax.plot([], [])
-    ax.set_ylim(-600,600)
+    ax.set_ylim(-2,2)
     ax.set_xlim(min(beam_offsets)-10, max(beam_offsets)+10)
 
     w_n = 1*2*np.pi
@@ -147,7 +160,7 @@ if __name__ == "__main__":
     est_pos  = azimuth
     #print(line)
     T_s = 1/5
-    k_i = 1.5
+    k_i = 0.8
     
     rssi = [0]*4
 
@@ -157,20 +170,21 @@ if __name__ == "__main__":
             pass
             plt.pause(0.01)
         rssi, corr = decoder.get_values()
-        
-        i_theta, scores = get_correlation(rssi, sim_results)
-        azimuth += T_s * k_i * np.rad2deg(theta_array[i_theta])
-
+        rssi_norm =rssi/np.linalg.norm(rssi)
+        i_theta, scores = get_correlation(rssi_norm, sim_results)
+        azimuth += T_s * k_i * (np.rad2deg(theta_array[i_theta]))
         #est_pos = np.rad2deg(-theta_array[i_theta])
-
         tarm.set_pos(azimuth, 00)
-
         t_now = time.time()
+        list_rssi.append(rssi_norm)
+        list_angle.append(theta_array[i_theta])
+        list_pos.append(tarm.get_pos()[0])
+        list_time.append(t_now)
         print("Ts: {:.3f}, azi: {:.2f}".format(t_now - t_last, azimuth))
         t_last = t_now
-        line[0].set_data(beam_offsets, rssi)
-        line2[0].set_data(beam_offsets, sim_results[i_theta]*np.linalg.norm(rssi))
-        line3[0].set_data(np.linspace(-np.rad2deg(scanwidth), np.rad2deg(scanwidth), len(scores)), np.multiply(scores, 1))
+        line[0].set_data(beam_offsets, rssi_norm)
+        line2[0].set_data(beam_offsets, sim_results[i_theta])
+        line3[0].set_data(np.linspace(-np.rad2deg(scanwidth), np.rad2deg(scanwidth), len(scores)), scores)
         target_angle = np.rad2deg(theta_array[i_theta])
         line4[0].set_data([target_angle,target_angle], [-1, 40])
         pass
