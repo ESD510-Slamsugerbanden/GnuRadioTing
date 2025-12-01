@@ -176,7 +176,7 @@ if __name__ == "__main__":
         #est_pos = np.rad2deg(-theta_array[i_theta])
         tarm.set_pos(azimuth, 00)
         t_now = time.time()
-        list_rssi.append(rssi_norm)
+        list_rssi.append(rssi)
         list_angle.append(theta_array[i_theta])
         list_pos.append(tarm.get_pos()[0])
         list_time.append(t_now)
