@@ -87,7 +87,7 @@ def search_initial_location():
     
     
     time.sleep(0.2)
-    for angle in np.linspace(0,360,16): #Deler 360 grader op i 4 dele så vi kan gætte os hurtigere frem til den bedste vinkel
+    for angle in np.linspace(0,360,4): #Deler 360 grader op i 4 dele så vi kan gætte os hurtigere frem til den bedste vinkel
         tarm.set_pos(angle,10)
         while(abs(tarm.get_pos()[0]- angle)>5):
             time.sleep(0.01)
@@ -97,7 +97,7 @@ def search_initial_location():
             timeout = 0
             while(beacon_decoder.avaliable() == False):    
                 time.sleep(0.01)
-                if time.time()-timer >= 3:
+                if time.time()-timer >= 1:
                     timeout = 1
                     break
                 

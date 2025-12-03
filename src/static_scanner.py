@@ -8,6 +8,9 @@ import atexit
 
 import pandas as pd
 
+from Temp_init_search import search_initial_location
+
+
 list_angle = []
 list_time = []
 list_rssi = []
@@ -139,8 +142,9 @@ if __name__ == "__main__":
     tarm = lp_server(6.28, 0.05)
     tarm.start()
 
+    
 
-    azimuth = 0 
+    azimuth,_ = search_initial_location() 
     t_last = time.time()
 
     plt.ion()
