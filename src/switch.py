@@ -9,6 +9,10 @@ GPIO.setup(Pin2, GPIO.OUT)
 GPIO.output(Pin1, GPIO.LOW)
 GPIO.output(Pin2, GPIO.LOW)
 
+
+
+
+
 def set_switch(sw):
     
     match sw:

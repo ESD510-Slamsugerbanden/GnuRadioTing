@@ -7,8 +7,9 @@ from angle_corr import get_rssi ##Simulated RSSI response
 import atexit
 
 import pandas as pd
+import RPi.GPIO as GPIO
 
-from Temp_init_search import search_initial_location
+#from Temp_init_search import search_initial_location
 
 
 list_angle = []
@@ -19,6 +20,8 @@ list_pos = []
 def exit_handler():
     dataframe = pd.DataFrame(({'Angles':list_angle,'Times':list_time, 'RSSI':list_rssi,'POS':list_pos}))
     dataframe.to_csv(f"{time.time()}.csv")
+    
+
 
 
 class lp_server:
@@ -129,6 +132,7 @@ def get_sim_vectors(n, scanwdith):
 
 
 if __name__ == "__main__":
+    
     atexit.register(exit_handler)
     scanwidth = np.deg2rad(60)
     n = 30
@@ -139,12 +143,13 @@ if __name__ == "__main__":
     decoder = Beacon_decoder(port=8700)
     decoder.begin()
 
-    tarm = lp_server(6.28, 0.05)
+    tarm = lp_server(6.28*12, 0.05)
     tarm.start()
 
     
 
-    azimuth,_ = search_initial_location() 
+    azimuth = 0
+    #azimuth,_ = search_initial_location() 
     t_last = time.time()
 
     plt.ion()
@@ -164,7 +169,7 @@ if __name__ == "__main__":
     est_pos  = azimuth
     #print(line)
     T_s = 1/5
-    k_i = 0.8
+    k_i = 1.5
     
     rssi = [0]*4
 
