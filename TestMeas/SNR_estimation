@@ -1,0 +1,72 @@
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from stationary_accuracy_mechanical import prepare_samples
+
+
+
+def maxbeam(input):
+    result = np.zeros(len(input))
+    for i in range(len(result)):
+        result[i] = np.max(input[i])
+    
+    return result
+
+
+
+if __name__ == "__main__":
+    station = [0,0,0,0]
+
+    station[0] = prepare_samples("10metertest.csv")
+    station[1] = prepare_samples("20metertest.csv")
+    station[2] = prepare_samples("30metertest.csv")
+    station[3] = prepare_samples("40metertest.csv")
+
+    RSSI = [0,0,0,0]
+
+
+
+
+    RSSI[0] = station[0]["RSSI"]
+    RSSI[1] = station[1]["RSSI"]
+    RSSI[2] = station[2]["RSSI"]
+    RSSI[3] = station[3]["RSSI"]
+
+    RSSI[0] = maxbeam(RSSI[0])
+    RSSI[1] = maxbeam(RSSI[1])
+    RSSI[2] = maxbeam(RSSI[2])
+    RSSI[3] = maxbeam(RSSI[3])
+
+    complete_rssi = np.concatenate(RSSI)
+    complete_distance = np.concatenate([
+        [10]*len(RSSI[0]),
+        [20]*len(RSSI[1]),
+        [30]*len(RSSI[2]),
+        [40]*len(RSSI[3])
+        ])
+    
+    data = pd.DataFrame({"rssi": complete_rssi, "distance":complete_distance })
+
+    plt.figure(figsize=(9,6))
+    #sns.histplot(x= "rssi",
+    #            data=data,
+    #            hue="distance",
+    #            kde=True
+    #)
+
+
+    n_samples = 31*20*1.2
+    data["rssi_sample"] = np.sqrt(data["rssi"]/n_samples)/5
+    data["adc_samples"] = data["rssi_sample"]/ (1/(2**12))
+    sns.histplot(x= "adc_samples",
+                data=data,
+                hue="distance",
+                kde=True
+    )
+    
+
+    
+
+    #print(RSSI[0])
+    plt.show()
